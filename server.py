@@ -34,7 +34,7 @@ class DashboardHandler(SimpleHTTPRequestHandler):
     def send_orders_csv(self):
         output = io.StringIO(newline="")
         writer = csv.writer(output)
-        writer.writerow(["ऑर्डर आईडी", "ग्राहक", "तारीख", "राशि (INR)", "स्थिति"])
+        writer.writerow(["Order ID", "Customer", "Date", "Amount (INR)", "Status"])
         for order in ORDERS:
             writer.writerow([order["id"], order["name"], order["date"], order["amount"], order["status"]])
         body = ("\ufeff" + output.getvalue()).encode("utf-8")

@@ -1,13 +1,17 @@
-let orders = [];
-let inventory = [];
-let customers = [];
-
+const DEFAULT_METRICS = { sales: 248560, orders: 1284, customers: 186, average: 1936 };
+const PERIOD_METRICS = {
+	week: { sales: 248560, orders: 1284, customers: 186, average: 1936 },
+	month: { sales: 934820, orders: 4892, customers: 624, average: 1911 },
+	year: { sales: 7826410, orders: 38416, customers: 4820, average: 2037 },
+};
+const STORAGE_KEY = "khatu-universal-dashboard-v1";
+const ALLOWED_TONES = new Set(["", "initial-coral", "initial-blue", "initial-yellow", "thumb-coral", "thumb-blue"]);
 const views = {
-	overview: { title: "डैशबोर्ड", heading: "नमस्ते, Khatu Universal", subtitle: "आज आपके बिज़नेस में क्या चल रहा है, यहाँ देखें।", tableTitle: "हाल के ऑर्डर", kind: "orders" },
-	orders: { title: "ऑर्डर", heading: "आपके ऑर्डर", subtitle: "सभी ऑर्डर की स्थिति और जानकारी एक जगह।", tableTitle: "सभी ऑर्डर", kind: "orders" },
-	inventory: { title: "इन्वेंटरी", heading: "आपकी इन्वेंटरी", subtitle: "उत्पाद और स्टॉक की मौजूदा स्थिति।", tableTitle: "कम स्टॉक वाले उत्पाद", kind: "inventory" },
-	customers: { title: "ग्राहक", heading: "आपके ग्राहक", subtitle: "ग्राहक संबंध और खरीदारी की जानकारी।", tableTitle: "हाल के ग्राहक", kind: "customers" },
-	reports: { title: "रिपोर्ट", heading: "बिज़नेस रिपोर्ट", subtitle: "बिक्री और ऑर्डर के प्रदर्शन का सारांश।", tableTitle: "बिक्री के ऑर्डर", kind: "orders" },
+	overview: { title: "Dashboard", heading: "Welcome, Khatu Universal", subtitle: "Here is what is happening in your business today.", tableTitle: "Recent orders", kind: "orders" },
+	orders: { title: "Orders", heading: "Your orders", subtitle: "Track every order and its current status.", tableTitle: "All orders", kind: "orders" },
+	inventory: { title: "Inventory", heading: "Your inventory", subtitle: "Review your products and current stock levels.", tableTitle: "Low-stock products", kind: "inventory" },
+	customers: { title: "Customers", heading: "Your customers", subtitle: "Keep track of customer relationships and purchases.", tableTitle: "Recent customers", kind: "customers" },
+	reports: { title: "Reports", heading: "Business reports", subtitle: "A summary of sales and order performance.", tableTitle: "Sales orders", kind: "orders" },
 };
 
 const tableHead = document.querySelector("#table-head");
@@ -15,11 +19,26 @@ const tableBody = document.querySelector("#table-body");
 const tableSearch = document.querySelector("#table-search");
 const globalSearch = document.querySelector("#global-search");
 const toast = document.querySelector("#toast");
+const editDialog = document.querySelector("#edit-dialog");
+const editorForm = document.querySelector("#editor-form");
 let activeView = "overview";
 let toastTimer;
+let metrics = { ...DEFAULT_METRICS };
+let orders = [];
+let inventory = [];
+let customers = [];
+let dashboardDefaults = { orders: [], inventory: [], customers: [] };
+
+function escapeHTML(value) {
+	return String(value ?? "").replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[character]);
+}
+
+function safeTone(value) {
+	return ALLOWED_TONES.has(value) ? value : "";
+}
 
 function formatCurrency(value) {
-	return `₹${value.toLocaleString("en-IN")}`;
+	return `₹${Number(value).toLocaleString("en-IN")}`;
 }
 
 function showToast(message) {
@@ -29,43 +48,51 @@ function showToast(message) {
 	toastTimer = window.setTimeout(() => toast.classList.remove("is-visible"), 2600);
 }
 
+function renderMetrics() {
+	document.querySelector("#sales-value").textContent = formatCurrency(metrics.sales);
+	document.querySelector("#chart-total").textContent = formatCurrency(metrics.sales);
+	document.querySelector("#orders-value").textContent = Number(metrics.orders).toLocaleString("en-IN");
+	document.querySelector("#customers-value").textContent = `+${Number(metrics.customers).toLocaleString("en-IN")}`;
+	document.querySelector("#average-value").textContent = formatCurrency(metrics.average);
+}
+
 function renderStock() {
 	const stockList = document.querySelector("#low-stock-list");
-	stockList.innerHTML = inventory.map((item) => `
+	stockList.innerHTML = inventory.slice(0, 3).map((item) => `
 		<div class="stock-item">
-			<span class="product-thumb ${item.tone}">${item.mark}</span>
-			<span class="product-info"><strong>${item.name}</strong><small>${item.sku}</small></span>
-			<span class="stock-pill">${item.stock} बचे</span>
+			<span class="product-thumb ${safeTone(item.tone)}">${escapeHTML(item.mark)}</span>
+			<span class="product-info"><strong>${escapeHTML(item.name)}</strong><small>${escapeHTML(item.sku)}</small></span>
+			<span class="stock-pill">${Number(item.stock).toLocaleString("en-IN")} left</span>
 		</div>
 	`).join("");
 }
 
 function getTableRows(kind, query) {
-	const normalizedQuery = query.trim().toLocaleLowerCase("hi");
+	const normalizedQuery = query.trim().toLocaleLowerCase("en");
 	if (kind === "inventory") {
-		const filtered = inventory.filter((item) => `${item.name} ${item.sku}`.toLocaleLowerCase("hi").includes(normalizedQuery));
+		const filtered = inventory.filter((item) => `${item.name} ${item.sku}`.toLocaleLowerCase("en").includes(normalizedQuery));
 		return {
-			header: "<tr><th>उत्पाद</th><th>SKU</th><th>उपलब्ध स्टॉक</th><th>स्थिति</th></tr>",
-			rows: filtered.map((item) => `<tr><td><span class="customer-cell"><span class="product-thumb ${item.tone}">${item.mark}</span><strong>${item.name}</strong></span></td><td>${item.sku}</td><td>${item.stock} यूनिट</td><td><span class="stock-pill">कम स्टॉक</span></td></tr>`),
+			header: "<tr><th>Product</th><th>SKU</th><th>Available stock</th><th>Status</th></tr>",
+			rows: filtered.map((item) => `<tr><td><span class="customer-cell"><span class="product-thumb ${safeTone(item.tone)}">${escapeHTML(item.mark)}</span><strong>${escapeHTML(item.name)}</strong></span></td><td>${escapeHTML(item.sku)}</td><td>${Number(item.stock).toLocaleString("en-IN")} units</td><td><span class="stock-pill">Low stock</span></td></tr>`),
 			total: filtered.length,
-			noun: "उत्पाद",
+			noun: filtered.length === 1 ? "product" : "products",
 		};
 	}
 	if (kind === "customers") {
-		const filtered = customers.filter((customer) => `${customer.name} ${customer.email}`.toLocaleLowerCase("hi").includes(normalizedQuery));
+		const filtered = customers.filter((customer) => `${customer.name} ${customer.email}`.toLocaleLowerCase("en").includes(normalizedQuery));
 		return {
-			header: "<tr><th>ग्राहक</th><th>कुल ऑर्डर</th><th>कुल खरीदारी</th><th>जुड़ने की तारीख</th></tr>",
-			rows: filtered.map((customer) => `<tr><td><span class="customer-cell"><span class="customer-initial ${customer.tone}">${customer.initials}</span><span><strong>${customer.name}</strong><br><small>${customer.email}</small></span></span></td><td>${customer.orders}</td><td>${formatCurrency(customer.spent)}</td><td>${customer.joined}</td></tr>`),
+			header: "<tr><th>Customer</th><th>Total orders</th><th>Total spent</th><th>Joined</th></tr>",
+			rows: filtered.map((customer) => `<tr><td><span class="customer-cell"><span class="customer-initial ${safeTone(customer.tone)}">${escapeHTML(customer.initials)}</span><span><strong>${escapeHTML(customer.name)}</strong><br><small>${escapeHTML(customer.email)}</small></span></span></td><td>${Number(customer.orders).toLocaleString("en-IN")}</td><td>${formatCurrency(customer.spent)}</td><td>${escapeHTML(customer.joined)}</td></tr>`),
 			total: filtered.length,
-			noun: "ग्राहक",
+			noun: filtered.length === 1 ? "customer" : "customers",
 		};
 	}
-	const filtered = orders.filter((order) => `${order.id} ${order.name} ${order.status}`.toLocaleLowerCase("hi").includes(normalizedQuery));
+	const filtered = orders.filter((order) => `${order.id} ${order.name} ${order.status}`.toLocaleLowerCase("en").includes(normalizedQuery));
 	return {
-		header: "<tr><th>ऑर्डर आईडी</th><th>ग्राहक</th><th>तारीख</th><th>राशि</th><th>स्थिति</th></tr>",
-		rows: filtered.map((order) => `<tr><td class="order-id">${order.id}</td><td><span class="customer-cell"><span class="customer-initial ${order.tone}">${order.initials}</span>${order.name}</span></td><td>${order.date}</td><td>${formatCurrency(order.amount)}</td><td><span class="status status-${order.statusKey}">${order.status}</span></td></tr>`),
+		header: "<tr><th>Order ID</th><th>Customer</th><th>Date</th><th>Amount</th><th>Status</th></tr>",
+		rows: filtered.map((order) => `<tr><td class="order-id">${escapeHTML(order.id)}</td><td><span class="customer-cell"><span class="customer-initial ${safeTone(order.tone)}">${escapeHTML(order.initials)}</span>${escapeHTML(order.name)}</span></td><td>${escapeHTML(order.date)}</td><td>${formatCurrency(order.amount)}</td><td><span class="status status-${order.statusKey}">${escapeHTML(order.status)}</span></td></tr>`),
 		total: filtered.length,
-		noun: "ऑर्डर",
+		noun: filtered.length === 1 ? "order" : "orders",
 	};
 }
 
@@ -73,16 +100,17 @@ function renderTable() {
 	const view = views[activeView];
 	const result = getTableRows(view.kind, tableSearch.value || globalSearch.value);
 	tableHead.innerHTML = result.header;
-	tableBody.innerHTML = result.rows.length ? result.rows.join("") : `<tr><td class="empty-state" colspan="5">कोई परिणाम नहीं मिला।</td></tr>`;
+	tableBody.innerHTML = result.rows.length ? result.rows.join("") : '<tr><td class="empty-state" colspan="5">No results found.</td></tr>';
 	document.querySelector("#table-title").textContent = view.tableTitle;
-	document.querySelector("#table-count").textContent = `${result.total} ${result.noun} मिले`;
+	document.querySelector("#table-count").textContent = `${result.total} ${result.noun} found`;
+	document.querySelector("[data-view='orders'] .nav-count").textContent = orders.length;
 }
 
 function setView(viewName) {
 	if (!views[viewName]) return;
 	activeView = viewName;
 	const view = views[viewName];
-	document.querySelectorAll(".nav-link").forEach((link) => {
+	document.querySelectorAll(".nav-link[data-view]").forEach((link) => {
 		const isActive = link.dataset.view === viewName;
 		link.classList.toggle("is-active", isActive);
 		if (isActive) link.setAttribute("aria-current", "page");
@@ -100,7 +128,75 @@ function setView(viewName) {
 	window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-document.querySelectorAll(".nav-link").forEach((link) => link.addEventListener("click", () => setView(link.dataset.view)));
+function fillEditor() {
+	for (const [key, value] of Object.entries(metrics)) editorForm.elements.namedItem(key).value = value;
+	document.querySelector("#orders-editor").value = JSON.stringify(orders, null, 2);
+	document.querySelector("#inventory-editor").value = JSON.stringify(inventory, null, 2);
+	document.querySelector("#customers-editor").value = JSON.stringify(customers, null, 2);
+}
+
+function validateRecordList(records, id, requiredFields, numericFields) {
+	if (!Array.isArray(records)) throw new Error(`${id.replace("#", "")} must contain a JSON array.`);
+	for (const [index, record] of records.entries()) {
+		if (!record || typeof record !== "object" || Array.isArray(record)) throw new Error(`Record ${index + 1} is not an object.`);
+		for (const field of requiredFields) {
+			if (!(field in record)) throw new Error(`Record ${index + 1} is missing the "${field}" field.`);
+			if (numericFields.includes(field) && (typeof record[field] !== "number" || !Number.isFinite(record[field]) || record[field] < 0)) throw new Error(`Record ${index + 1}: "${field}" must be a non-negative number.`);
+			if (!numericFields.includes(field) && typeof record[field] !== "string") throw new Error(`Record ${index + 1}: "${field}" must be text.`);
+		}
+		if (!ALLOWED_TONES.has(record.tone)) throw new Error(`Record ${index + 1} has an unsupported display tone.`);
+		if (id === "#orders-editor" && !["delivered", "processing", "pending", "cancelled"].includes(record.statusKey)) throw new Error(`Record ${index + 1} has an unsupported statusKey.`);
+	}
+	return records.map((record) => ({
+		...record,
+		...Object.fromEntries(numericFields.map((field) => [field, Number(record[field])])),
+	}));
+}
+
+function parseEditorList(id, requiredFields, numericFields) {
+	return validateRecordList(JSON.parse(document.querySelector(id).value), id, requiredFields, numericFields);
+}
+
+function saveDashboard(state = { metrics, orders, inventory, customers }) {
+	try {
+		localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+		return true;
+	} catch (error) {
+		console.error("Could not save dashboard settings:", error);
+		showToast("Could not save changes in this browser.");
+		return false;
+	}
+}
+
+function readSavedDashboard() {
+	try {
+		return JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
+	} catch (error) {
+		console.warn("Saved dashboard data could not be read:", error);
+		return null;
+	}
+}
+
+function restoreDefaults() {
+	metrics = { ...DEFAULT_METRICS };
+	orders = JSON.parse(JSON.stringify(dashboardDefaults.orders));
+	inventory = JSON.parse(JSON.stringify(dashboardDefaults.inventory));
+	customers = JSON.parse(JSON.stringify(dashboardDefaults.customers));
+	try {
+		localStorage.removeItem(STORAGE_KEY);
+	} catch (error) {
+		console.error("Could not remove saved dashboard data:", error);
+		showToast("Could not clear saved edits in this browser.");
+		return;
+	}
+	renderMetrics();
+	renderStock();
+	renderTable();
+	fillEditor();
+	showToast("Dashboard restored to default data.");
+}
+
+document.querySelectorAll(".nav-link[data-view]").forEach((link) => link.addEventListener("click", () => setView(link.dataset.view)));
 document.querySelectorAll("[data-open-view]").forEach((button) => button.addEventListener("click", () => setView(button.dataset.openView)));
 tableSearch.addEventListener("input", renderTable);
 globalSearch.addEventListener("input", () => {
@@ -111,18 +207,17 @@ globalSearch.addEventListener("input", () => {
 
 document.querySelector("#period-select").addEventListener("change", (event) => {
 	const period = event.target.value;
-	const labels = { week: "इस हफ़्ते", month: "इस महीने", year: "इस साल" };
-	const sales = { week: 248560, month: 934820, year: 7826410 };
-	const count = { week: "1,284", month: "4,892", year: "38,416" };
-	document.querySelector("#sales-value").textContent = formatCurrency(sales[period]);
-	document.querySelector("#chart-total").textContent = formatCurrency(sales[period]);
-	document.querySelector("#orders-value").textContent = count[period];
+	const labels = { week: "This week", month: "This month", year: "This year" };
+	metrics = { ...PERIOD_METRICS[period] };
+	renderMetrics();
+	saveDashboard();
 	document.querySelector(".legend-current").parentElement.lastChild.textContent = labels[period];
-	showToast(`${labels[period]} का सारांश दिखाया जा रहा है।`);
+	document.querySelector(".chart-summary small").textContent = `compared with last ${period}`;
+	showToast(`${labels[period]} summary selected.`);
 });
 
 document.querySelector("#export-button").addEventListener("click", () => {
-	const headings = ["ऑर्डर आईडी", "ग्राहक", "तारीख", "राशि (INR)", "स्थिति"];
+	const headings = ["Order ID", "Customer", "Date", "Amount (INR)", "Status"];
 	const lines = [headings, ...orders.map((order) => [order.id, order.name, order.date, order.amount, order.status])];
 	const csv = `\uFEFF${lines.map((line) => line.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(",")).join("\n")}`;
 	const link = document.createElement("a");
@@ -130,10 +225,40 @@ document.querySelector("#export-button").addEventListener("click", () => {
 	link.download = "khatu-universal-orders.csv";
 	link.click();
 	URL.revokeObjectURL(link.href);
-	showToast("ऑर्डर रिपोर्ट डाउनलोड हो गई।");
+	showToast("Orders report downloaded.");
 });
 
-document.querySelector(".notification-button").addEventListener("click", () => showToast("आपके पास 3 नई सूचनाएं हैं।"));
+document.querySelector("#edit-zone-button").addEventListener("click", () => {
+	fillEditor();
+	editDialog.showModal();
+});
+document.querySelector("#close-editor").addEventListener("click", () => editDialog.close());
+document.querySelector("#reset-editor").addEventListener("click", restoreDefaults);
+editorForm.addEventListener("submit", (event) => {
+	event.preventDefault();
+	try {
+		const formData = new FormData(editorForm);
+		const nextMetrics = Object.fromEntries(["sales", "orders", "customers", "average"].map((key) => [key, Number(formData.get(key))]));
+		if (Object.values(nextMetrics).some((value) => !Number.isFinite(value) || value < 0)) throw new Error("Metrics must be non-negative numbers.");
+		const nextOrders = parseEditorList("#orders-editor", ["id", "name", "initials", "tone", "date", "amount", "status", "statusKey"], ["amount"]);
+		const nextInventory = parseEditorList("#inventory-editor", ["name", "sku", "stock", "tone", "mark"], ["stock"]);
+		const nextCustomers = parseEditorList("#customers-editor", ["name", "initials", "tone", "email", "orders", "spent", "joined"], ["orders", "spent"]);
+		if (!saveDashboard({ metrics: nextMetrics, orders: nextOrders, inventory: nextInventory, customers: nextCustomers })) return;
+		metrics = nextMetrics;
+		orders = nextOrders;
+		inventory = nextInventory;
+		customers = nextCustomers;
+		renderMetrics();
+		renderStock();
+		renderTable();
+		editDialog.close();
+		showToast("Dashboard changes saved in this browser.");
+	} catch (error) {
+		showToast(error instanceof SyntaxError ? "Check the JSON syntax in the editor." : error.message);
+	}
+});
+
+document.querySelector(".notification-button").addEventListener("click", () => showToast("You have 3 new notifications."));
 document.addEventListener("keydown", (event) => {
 	if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
 		event.preventDefault();
@@ -152,17 +277,40 @@ async function loadDashboardData() {
 		if (!response.ok) response = await fetch("dashboard-data.json", { headers: { Accept: "application/json" } });
 		if (!response.ok) throw new Error(`Dashboard data returned ${response.status}`);
 		const data = await response.json();
-		orders = Array.isArray(data.orders) ? data.orders : [];
-		inventory = Array.isArray(data.inventory) ? data.inventory : [];
-		customers = Array.isArray(data.customers) ? data.customers : [];
+		dashboardDefaults = {
+			orders: Array.isArray(data.orders) ? data.orders : [],
+			inventory: Array.isArray(data.inventory) ? data.inventory : [],
+			customers: Array.isArray(data.customers) ? data.customers : [],
+		};
+		orders = JSON.parse(JSON.stringify(dashboardDefaults.orders));
+		inventory = JSON.parse(JSON.stringify(dashboardDefaults.inventory));
+		customers = JSON.parse(JSON.stringify(dashboardDefaults.customers));
+		const saved = readSavedDashboard();
+		if (saved && typeof saved === "object") {
+			if (saved.metrics && ["sales", "orders", "customers", "average"].every((key) => Number.isFinite(Number(saved.metrics[key])) && Number(saved.metrics[key]) >= 0)) {
+				metrics = Object.fromEntries(["sales", "orders", "customers", "average"].map((key) => [key, Number(saved.metrics[key])]));
+			}
+			try {
+				if (Array.isArray(saved.orders)) orders = validateRecordList(saved.orders, "#orders-editor", ["id", "name", "initials", "tone", "date", "amount", "status", "statusKey"], ["amount"]);
+				if (Array.isArray(saved.inventory)) inventory = validateRecordList(saved.inventory, "#inventory-editor", ["name", "sku", "stock", "tone", "mark"], ["stock"]);
+				if (Array.isArray(saved.customers)) customers = validateRecordList(saved.customers, "#customers-editor", ["name", "initials", "tone", "email", "orders", "spent", "joined"], ["orders", "spent"]);
+			} catch (error) {
+				console.warn("Some saved dashboard records were invalid; defaults will be used:", error);
+				orders = JSON.parse(JSON.stringify(dashboardDefaults.orders));
+				inventory = JSON.parse(JSON.stringify(dashboardDefaults.inventory));
+				customers = JSON.parse(JSON.stringify(dashboardDefaults.customers));
+			}
+		}
+		renderMetrics();
 		renderStock();
 		renderTable();
 	} catch (error) {
 		console.error("Could not load dashboard data:", error);
-		showToast("डैशबोर्ड डेटा लोड नहीं हुआ। पेज रीफ़्रेश करके फिर कोशिश करें।");
+		showToast("Dashboard data could not be loaded. Refresh the page and try again.");
 	}
 }
 
+renderMetrics();
 renderStock();
 renderTable();
 loadDashboardData();

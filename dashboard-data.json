@@ -1,18 +1,18 @@
 {
   "orders": [
-    { "id": "#KU-2084", "name": "Aarav Sharma", "initials": "AS", "tone": "", "date": "28 Oct, 2026", "amount": 4250, "status": "डिलीवर", "statusKey": "delivered" },
-    { "id": "#KU-2083", "name": "Meera Patel", "initials": "MP", "tone": "initial-coral", "date": "28 Oct, 2026", "amount": 1890, "status": "प्रोसेस में", "statusKey": "processing" },
-    { "id": "#KU-2082", "name": "Kabir Singh", "initials": "KS", "tone": "initial-blue", "date": "27 Oct, 2026", "amount": 6320, "status": "पेंडिंग", "statusKey": "pending" },
-    { "id": "#KU-2081", "name": "Anaya Gupta", "initials": "AG", "tone": "initial-yellow", "date": "27 Oct, 2026", "amount": 2750, "status": "डिलीवर", "statusKey": "delivered" },
-    { "id": "#KU-2080", "name": "Vivaan Verma", "initials": "VV", "tone": "", "date": "26 Oct, 2026", "amount": 980, "status": "रद्द", "statusKey": "cancelled" },
-    { "id": "#KU-2079", "name": "Ishita Joshi", "initials": "IJ", "tone": "initial-coral", "date": "26 Oct, 2026", "amount": 3480, "status": "डिलीवर", "statusKey": "delivered" },
-    { "id": "#KU-2078", "name": "Arjun Mehta", "initials": "AM", "tone": "initial-blue", "date": "25 Oct, 2026", "amount": 1560, "status": "पेंडिंग", "statusKey": "pending" },
-    { "id": "#KU-2077", "name": "Sara Khan", "initials": "SK", "tone": "initial-yellow", "date": "25 Oct, 2026", "amount": 5200, "status": "प्रोसेस में", "statusKey": "processing" }
+    { "id": "#KU-2084", "name": "Aarav Sharma", "initials": "AS", "tone": "", "date": "Oct 28, 2026", "amount": 4250, "status": "Delivered", "statusKey": "delivered" },
+    { "id": "#KU-2083", "name": "Meera Patel", "initials": "MP", "tone": "initial-coral", "date": "Oct 28, 2026", "amount": 1890, "status": "Processing", "statusKey": "processing" },
+    { "id": "#KU-2082", "name": "Kabir Singh", "initials": "KS", "tone": "initial-blue", "date": "Oct 27, 2026", "amount": 6320, "status": "Pending", "statusKey": "pending" },
+    { "id": "#KU-2081", "name": "Anaya Gupta", "initials": "AG", "tone": "initial-yellow", "date": "Oct 27, 2026", "amount": 2750, "status": "Delivered", "statusKey": "delivered" },
+    { "id": "#KU-2080", "name": "Vivaan Verma", "initials": "VV", "tone": "", "date": "Oct 26, 2026", "amount": 980, "status": "Cancelled", "statusKey": "cancelled" },
+    { "id": "#KU-2079", "name": "Ishita Joshi", "initials": "IJ", "tone": "initial-coral", "date": "Oct 26, 2026", "amount": 3480, "status": "Delivered", "statusKey": "delivered" },
+    { "id": "#KU-2078", "name": "Arjun Mehta", "initials": "AM", "tone": "initial-blue", "date": "Oct 25, 2026", "amount": 1560, "status": "Pending", "statusKey": "pending" },
+    { "id": "#KU-2077", "name": "Sara Khan", "initials": "SK", "tone": "initial-yellow", "date": "Oct 25, 2026", "amount": 5200, "status": "Processing", "statusKey": "processing" }
   ],
   "inventory": [
-    { "name": "कॉटन कुर्ता सेट", "sku": "SKU-1042", "stock": 4, "tone": "", "mark": "क" },
-    { "name": "हैंडमेड टोट बैग", "sku": "SKU-0871", "stock": 7, "tone": "thumb-coral", "mark": "ह" },
-    { "name": "टेबल लैंप - मिंट", "sku": "SKU-1128", "stock": 9, "tone": "thumb-blue", "mark": "ट" }
+    { "name": "Cotton Kurta Set", "sku": "SKU-1042", "stock": 4, "tone": "", "mark": "C" },
+    { "name": "Handmade Tote Bag", "sku": "SKU-0871", "stock": 7, "tone": "thumb-coral", "mark": "H" },
+    { "name": "Mint Table Lamp", "sku": "SKU-1128", "stock": 9, "tone": "thumb-blue", "mark": "M" }
   ],
   "customers": [
     { "name": "Aarav Sharma", "initials": "AS", "tone": "", "email": "aarav.sharma@email.com", "orders": 12, "spent": 28450, "joined": "12 Sep, 2026" },
