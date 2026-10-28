@@ -50,7 +50,6 @@ function showToast(message) {
 
 function renderMetrics() {
 	document.querySelector("#sales-value").textContent = formatCurrency(metrics.sales);
-	document.querySelector("#chart-total").textContent = formatCurrency(metrics.sales);
 	document.querySelector("#orders-value").textContent = Number(metrics.orders).toLocaleString("en-IN");
 	document.querySelector("#customers-value").textContent = `+${Number(metrics.customers).toLocaleString("en-IN")}`;
 	document.querySelector("#average-value").textContent = formatCurrency(metrics.average);
@@ -121,7 +120,6 @@ function setView(viewName) {
 	document.querySelector("#page-subtitle").textContent = view.subtitle;
 	document.querySelector(".metric-grid").hidden = viewName === "customers" || viewName === "inventory";
 	document.querySelector(".content-grid").hidden = viewName === "customers" || viewName === "inventory";
-	document.querySelector(".sales-panel").hidden = viewName === "reports";
 	document.querySelector(".stock-panel").hidden = viewName === "orders" || viewName === "reports";
 	tableSearch.value = "";
 	renderTable();
@@ -211,8 +209,6 @@ document.querySelector("#period-select").addEventListener("change", (event) => {
 	metrics = { ...PERIOD_METRICS[period] };
 	renderMetrics();
 	saveDashboard();
-	document.querySelector(".legend-current").parentElement.lastChild.textContent = labels[period];
-	document.querySelector(".chart-summary small").textContent = `compared with last ${period}`;
 	showToast(`${labels[period]} summary selected.`);
 });
 

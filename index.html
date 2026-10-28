@@ -60,7 +60,7 @@
               <p class="page-subtitle" id="page-subtitle">Here is what is happening in your business today.</p>
             </div>
             <div class="heading-actions">
-              <button class="button button-editor" id="edit-zone-button" type="button"><span aria-hidden="true">✎</span> Edit Zone from Edwin</button>
+              <button class="button button-editor" id="edit-zone-button" type="button"><span aria-hidden="true">✎</span> Edit dashboard</button>
               <label class="period-select"><span class="sr-only">Date range</span><select id="period-select"><option value="week">This week</option><option value="month">This month</option><option value="year">This year</option></select><span aria-hidden="true">⌄</span></label>
               <button class="button button-primary" id="export-button" type="button"><span aria-hidden="true">↓</span> Export report</button>
             </div>
@@ -71,52 +71,25 @@
               <div class="metric-top"><span>Total sales</span><span class="metric-icon">₹</span></div>
               <div class="metric-value" id="sales-value">₹2,48,560</div>
               <div class="metric-foot"><span class="trend trend-up">↗ 12.8%</span><span>vs. previous period</span></div>
-              <div class="metric-spark spark-sales" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
             </article>
             <article class="metric-card">
               <div class="metric-top"><span>Total orders</span><span class="metric-icon icon-coral">▤</span></div>
               <div class="metric-value" id="orders-value">1,284</div>
               <div class="metric-foot"><span class="trend trend-up">↗ 8.2%</span><span>vs. previous period</span></div>
-              <div class="metric-spark spark-orders" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
             </article>
             <article class="metric-card">
               <div class="metric-top"><span>New customers</span><span class="metric-icon icon-blue">♙</span></div>
               <div class="metric-value" id="customers-value">+186</div>
               <div class="metric-foot"><span class="trend trend-up">↗ 6.4%</span><span>vs. previous period</span></div>
-              <div class="metric-spark spark-customers" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
             </article>
             <article class="metric-card">
               <div class="metric-top"><span>Average order value</span><span class="metric-icon icon-yellow">◈</span></div>
               <div class="metric-value" id="average-value">₹1,936</div>
               <div class="metric-foot"><span class="trend trend-down">↘ 2.1%</span><span>vs. previous period</span></div>
-              <div class="metric-spark spark-average" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
             </article>
           </section>
 
           <section class="content-grid">
-            <article class="panel sales-panel">
-              <div class="panel-heading">
-                <div><p class="panel-kicker">SALES PERFORMANCE</p><h2>Revenue trends</h2></div>
-                <div class="chart-legend"><span><i class="legend-dot legend-current"></i>This week</span><span><i class="legend-dot legend-previous"></i>Last week</span></div>
-              </div>
-              <div class="chart-summary"><strong id="chart-total">₹2,48,560</strong><span class="trend trend-up">↗ 12.8%</span><small>compared with last week</small></div>
-              <div class="chart-wrap" role="img" aria-label="Bar chart comparing daily sales this week and last week">
-                <div class="chart-y-labels"><span>₹50k</span><span>₹35k</span><span>₹20k</span><span>₹5k</span></div>
-                <div class="chart-plot">
-                  <div class="chart-gridlines"><i></i><i></i><i></i><i></i></div>
-                  <div class="bar-groups">
-                    <div class="bar-group"><div class="bar-pair"><i class="bar previous" style="--height:38%"></i><i class="bar current" style="--height:56%"></i></div><span>Mon</span></div>
-                    <div class="bar-group"><div class="bar-pair"><i class="bar previous" style="--height:52%"></i><i class="bar current" style="--height:72%"></i></div><span>Tue</span></div>
-                    <div class="bar-group"><div class="bar-pair"><i class="bar previous" style="--height:43%"></i><i class="bar current" style="--height:63%"></i></div><span>Wed</span></div>
-                    <div class="bar-group"><div class="bar-pair"><i class="bar previous" style="--height:64%"></i><i class="bar current" style="--height:48%"></i></div><span>Thu</span></div>
-                    <div class="bar-group"><div class="bar-pair"><i class="bar previous" style="--height:47%"></i><i class="bar current" style="--height:82%"></i></div><span>Fri</span></div>
-                    <div class="bar-group"><div class="bar-pair"><i class="bar previous" style="--height:72%"></i><i class="bar current" style="--height:94%"></i></div><span>Sat</span></div>
-                    <div class="bar-group"><div class="bar-pair"><i class="bar previous" style="--height:56%"></i><i class="bar current" style="--height:68%"></i></div><span>Sun</span></div>
-                  </div>
-                </div>
-              </div>
-            </article>
-
             <article class="panel stock-panel">
               <div class="panel-heading">
                 <div><p class="panel-kicker">INVENTORY WATCH</p><h2>Low-stock products</h2></div>
@@ -142,7 +115,7 @@
     </div>
     <dialog class="edit-dialog" id="edit-dialog" aria-labelledby="edit-title">
       <div class="editor-heading">
-        <div><p class="panel-kicker">DASHBOARD SETTINGS</p><h2 id="edit-title">Edit Zone from Edwin</h2><p class="editor-description">Update the metrics and records shown on your dashboard.</p></div>
+        <div><p class="panel-kicker">DASHBOARD SETTINGS</p><h2 id="edit-title">Edit dashboard</h2><p class="editor-description">Update the metrics and records shown on your dashboard.</p></div>
         <button class="icon-button editor-close" id="close-editor" type="button" aria-label="Close editor">×</button>
       </div>
       <form id="editor-form">
