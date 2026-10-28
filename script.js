@@ -128,9 +128,78 @@ function setView(viewName) {
 
 function fillEditor() {
 	for (const [key, value] of Object.entries(metrics)) editorForm.elements.namedItem(key).value = value;
-	document.querySelector("#orders-editor").value = JSON.stringify(orders, null, 2);
-	document.querySelector("#inventory-editor").value = JSON.stringify(inventory, null, 2);
-	document.querySelector("#customers-editor").value = JSON.stringify(customers, null, 2);
+	renderEditorRecords("orders", orders);
+	renderEditorRecords("inventory", inventory);
+	renderEditorRecords("customers", customers);
+}
+
+const editorFields = {
+	orders: [
+		{ key: "id", label: "Order ID" },
+		{ key: "name", label: "Customer" },
+		{ key: "date", label: "Date" },
+		{ key: "amount", label: "Amount (INR)", type: "number" },
+		{ key: "status", label: "Status", type: "status" },
+	],
+	inventory: [
+		{ key: "name", label: "Product name" },
+		{ key: "sku", label: "SKU" },
+		{ key: "stock", label: "Available stock", type: "number" },
+	],
+	customers: [
+		{ key: "name", label: "Customer name" },
+		{ key: "email", label: "Email", type: "email" },
+		{ key: "orders", label: "Total orders", type: "number" },
+		{ key: "spent", label: "Total spent (INR)", type: "number" },
+		{ key: "joined", label: "Joined" },
+	],
+};
+
+const editorDefaults = {
+	orders: { id: "", name: "", initials: "", tone: "", date: "", amount: 0, status: "Pending", statusKey: "pending" },
+	inventory: { name: "", sku: "", stock: 0, tone: "", mark: "" },
+	customers: { name: "", initials: "", tone: "", email: "", orders: 0, spent: 0, joined: "" },
+};
+
+function renderEditorField(collection, field, value) {
+	const inputType = field.type === "number" || field.type === "email" ? field.type : "text";
+	const control = field.type === "status"
+		? `<select data-editor-field="${field.key}" required>${["Delivered", "Processing", "Pending", "Cancelled"].map((status) => `<option${value === status ? " selected" : ""}>${status}</option>`).join("")}</select>`
+		: `<input data-editor-field="${field.key}" type="${inputType}" value="${escapeHTML(value)}"${inputType === "number" ? ' min="0" step="1"' : ""} required />`;
+	return `<label class="editor-field">${field.label}${control}</label>`;
+}
+
+function renderEditorRecord(collection, record, sourceIndex) {
+	const fields = editorFields[collection].map((field) => renderEditorField(collection, field, record[field.key] ?? "")).join("");
+	const title = collection === "orders" ? record.id || "New order" : record.name || (collection === "inventory" ? "New product" : "New customer");
+	const detail = collection === "orders" ? record.name : collection === "inventory" ? record.sku : record.email;
+	return `<details class="editor-record" data-source-index="${sourceIndex}"><summary><span class="record-summary-title">${escapeHTML(title)}</span><span class="record-summary-detail">${escapeHTML(detail || "Edit details")}</span><span class="record-chevron" aria-hidden="true">⌄</span></summary><div class="editor-record-fields">${fields}<button class="record-remove" type="button" aria-label="Remove ${collection === "orders" ? "order" : collection === "inventory" ? "product" : "customer"}">Remove</button></div></details>`;
+}
+
+function renderEditorRecords(collection, records) {
+	const container = document.querySelector(`#${collection}-editor`);
+	container.innerHTML = records.map((record, index) => renderEditorRecord(collection, record, index)).join("");
+}
+
+function collectEditorRecords(collection, currentRecords) {
+	const container = document.querySelector(`#${collection}-editor`);
+	return [...container.querySelectorAll(".editor-record")].map((row) => {
+		const sourceIndex = Number(row.dataset.sourceIndex);
+		const source = sourceIndex >= 0 ? currentRecords[sourceIndex] : editorDefaults[collection];
+		const record = { ...source };
+		row.querySelectorAll("[data-editor-field]").forEach((input) => {
+			record[input.dataset.editorField] = input.type === "number" ? Number(input.value) : input.value.trim();
+		});
+		if (collection === "orders") {
+			record.initials = record.name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0].toUpperCase()).join("");
+			record.statusKey = record.status.toLowerCase();
+		} else if (collection === "inventory") {
+			record.mark = record.name.trim().charAt(0).toUpperCase();
+		} else {
+			record.initials = record.name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0].toUpperCase()).join("");
+		}
+		return record;
+	});
 }
 
 function validateRecordList(records, id, requiredFields, numericFields) {
@@ -143,16 +212,12 @@ function validateRecordList(records, id, requiredFields, numericFields) {
 			if (!numericFields.includes(field) && typeof record[field] !== "string") throw new Error(`Record ${index + 1}: "${field}" must be text.`);
 		}
 		if (!ALLOWED_TONES.has(record.tone)) throw new Error(`Record ${index + 1} has an unsupported display tone.`);
-		if (id === "#orders-editor" && !["delivered", "processing", "pending", "cancelled"].includes(record.statusKey)) throw new Error(`Record ${index + 1} has an unsupported statusKey.`);
+		if (id === "orders" && !["delivered", "processing", "pending", "cancelled"].includes(record.statusKey)) throw new Error(`Record ${index + 1} has an unsupported statusKey.`);
 	}
 	return records.map((record) => ({
 		...record,
 		...Object.fromEntries(numericFields.map((field) => [field, Number(record[field])])),
 	}));
-}
-
-function parseEditorList(id, requiredFields, numericFields) {
-	return validateRecordList(JSON.parse(document.querySelector(id).value), id, requiredFields, numericFields);
 }
 
 function saveDashboard(state = { metrics, orders, inventory, customers }) {
@@ -230,15 +295,31 @@ document.querySelector("#edit-zone-button").addEventListener("click", () => {
 });
 document.querySelector("#close-editor").addEventListener("click", () => editDialog.close());
 document.querySelector("#reset-editor").addEventListener("click", restoreDefaults);
+document.querySelector(".editor-scroll").addEventListener("click", (event) => {
+	const addButton = event.target.closest("[data-add-record]");
+	if (addButton) {
+		const collection = addButton.dataset.addRecord;
+		const container = document.querySelector(`#${collection}-editor`);
+		const row = document.createElement("div");
+		row.innerHTML = renderEditorRecord(collection, editorDefaults[collection], -1);
+		const newRecord = row.firstElementChild;
+		newRecord.open = true;
+		container.append(newRecord);
+		newRecord.querySelector("input, select").focus();
+		return;
+	}
+	const removeButton = event.target.closest(".record-remove");
+	if (removeButton) removeButton.closest(".editor-record").remove();
+});
 editorForm.addEventListener("submit", (event) => {
 	event.preventDefault();
 	try {
 		const formData = new FormData(editorForm);
 		const nextMetrics = Object.fromEntries(["sales", "orders", "customers", "average"].map((key) => [key, Number(formData.get(key))]));
 		if (Object.values(nextMetrics).some((value) => !Number.isFinite(value) || value < 0)) throw new Error("Metrics must be non-negative numbers.");
-		const nextOrders = parseEditorList("#orders-editor", ["id", "name", "initials", "tone", "date", "amount", "status", "statusKey"], ["amount"]);
-		const nextInventory = parseEditorList("#inventory-editor", ["name", "sku", "stock", "tone", "mark"], ["stock"]);
-		const nextCustomers = parseEditorList("#customers-editor", ["name", "initials", "tone", "email", "orders", "spent", "joined"], ["orders", "spent"]);
+		const nextOrders = validateRecordList(collectEditorRecords("orders", orders), "orders", ["id", "name", "initials", "tone", "date", "amount", "status", "statusKey"], ["amount"]);
+		const nextInventory = validateRecordList(collectEditorRecords("inventory", inventory), "inventory", ["name", "sku", "stock", "tone", "mark"], ["stock"]);
+		const nextCustomers = validateRecordList(collectEditorRecords("customers", customers), "customers", ["name", "initials", "tone", "email", "orders", "spent", "joined"], ["orders", "spent"]);
 		if (!saveDashboard({ metrics: nextMetrics, orders: nextOrders, inventory: nextInventory, customers: nextCustomers })) return;
 		metrics = nextMetrics;
 		orders = nextOrders;
@@ -254,7 +335,6 @@ editorForm.addEventListener("submit", (event) => {
 	}
 });
 
-document.querySelector(".notification-button").addEventListener("click", () => showToast("You have 3 new notifications."));
 document.addEventListener("keydown", (event) => {
 	if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
 		event.preventDefault();
@@ -287,9 +367,9 @@ async function loadDashboardData() {
 				metrics = Object.fromEntries(["sales", "orders", "customers", "average"].map((key) => [key, Number(saved.metrics[key])]));
 			}
 			try {
-				if (Array.isArray(saved.orders)) orders = validateRecordList(saved.orders, "#orders-editor", ["id", "name", "initials", "tone", "date", "amount", "status", "statusKey"], ["amount"]);
-				if (Array.isArray(saved.inventory)) inventory = validateRecordList(saved.inventory, "#inventory-editor", ["name", "sku", "stock", "tone", "mark"], ["stock"]);
-				if (Array.isArray(saved.customers)) customers = validateRecordList(saved.customers, "#customers-editor", ["name", "initials", "tone", "email", "orders", "spent", "joined"], ["orders", "spent"]);
+				if (Array.isArray(saved.orders)) orders = validateRecordList(saved.orders, "orders", ["id", "name", "initials", "tone", "date", "amount", "status", "statusKey"], ["amount"]);
+				if (Array.isArray(saved.inventory)) inventory = validateRecordList(saved.inventory, "inventory", ["name", "sku", "stock", "tone", "mark"], ["stock"]);
+				if (Array.isArray(saved.customers)) customers = validateRecordList(saved.customers, "customers", ["name", "initials", "tone", "email", "orders", "spent", "joined"], ["orders", "spent"]);
 			} catch (error) {
 				console.warn("Some saved dashboard records were invalid; defaults will be used:", error);
 				orders = JSON.parse(JSON.stringify(dashboardDefaults.orders));
@@ -303,6 +383,8 @@ async function loadDashboardData() {
 	} catch (error) {
 		console.error("Could not load dashboard data:", error);
 		showToast("Dashboard data could not be loaded. Refresh the page and try again.");
+	} finally {
+		document.querySelector("#app-loader").classList.add("is-hidden");
 	}
 }
 

@@ -3,7 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f6f7f2" />
+    <meta name="theme-color" content="#f3f6fa" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#111820" media="(prefers-color-scheme: dark)" />
     <title>Khatu Universal | Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -47,7 +48,6 @@
           <div class="breadcrumb"><span>Khatu Universal</span><span class="crumb-slash">/</span><strong id="breadcrumb-current">Dashboard</strong></div>
           <div class="topbar-actions">
             <label class="search-box"><span aria-hidden="true">⌕</span><input id="global-search" type="search" placeholder="Search orders or customers" aria-label="Search orders or customers" /><kbd>⌘ K</kbd></label>
-            <button class="icon-button notification-button" type="button" aria-label="Notifications"><span>♧</span><i></i></button>
             <span class="avatar avatar-top">KU</span>
           </div>
         </header>
@@ -130,16 +130,16 @@
             </div>
           </section>
           <section class="editor-section">
-            <h3>Orders</h3><p class="editor-help">Edit the records as JSON. Keep the listed field names and valid JSON syntax.</p>
-            <label class="sr-only" for="orders-editor">Orders data in JSON format</label><textarea id="orders-editor" class="json-editor" spellcheck="false" rows="8"></textarea>
+            <div class="editor-section-heading"><div><h3>Orders</h3><p class="editor-help">Update order details and status.</p></div><button class="editor-add" type="button" data-add-record="orders"><span aria-hidden="true">+</span> Add order</button></div>
+            <div class="editor-record-list" id="orders-editor"></div>
           </section>
           <section class="editor-section">
-            <h3>Inventory</h3><p class="editor-help">Update product names, SKUs, stock counts, and display marks.</p>
-            <label class="sr-only" for="inventory-editor">Inventory data in JSON format</label><textarea id="inventory-editor" class="json-editor" spellcheck="false" rows="5"></textarea>
+            <div class="editor-section-heading"><div><h3>Inventory</h3><p class="editor-help">Update product names, SKUs, and stock counts.</p></div><button class="editor-add" type="button" data-add-record="inventory"><span aria-hidden="true">+</span> Add product</button></div>
+            <div class="editor-record-list" id="inventory-editor"></div>
           </section>
           <section class="editor-section">
-            <h3>Customers</h3><p class="editor-help">Update customer contact details and purchase totals.</p>
-            <label class="sr-only" for="customers-editor">Customer data in JSON format</label><textarea id="customers-editor" class="json-editor" spellcheck="false" rows="7"></textarea>
+            <div class="editor-section-heading"><div><h3>Customers</h3><p class="editor-help">Update customer details and purchase totals.</p></div><button class="editor-add" type="button" data-add-record="customers"><span aria-hidden="true">+</span> Add customer</button></div>
+            <div class="editor-record-list" id="customers-editor"></div>
           </section>
         </div>
         <div class="editor-actions">
@@ -149,6 +149,7 @@
         </div>
       </form>
     </dialog>
+    <div class="app-loader" id="app-loader" role="status" aria-label="Loading Khatu Universal dashboard"><span aria-hidden="true">∞</span></div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
   </body>
 </html>
