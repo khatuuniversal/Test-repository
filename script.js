@@ -48,14 +48,6 @@ function showToast(message) {
 	toastTimer = window.setTimeout(() => toast.classList.remove("is-visible"), 2600);
 }
 
-function setSystemStatus(state, label) {
-	const status = document.querySelector("#system-status");
-	status.classList.remove("is-loading", "is-online", "is-offline");
-	status.classList.add(`is-${state}`);
-	document.querySelector("#system-status-value").textContent = label;
-	document.querySelector("#system-footer-status").textContent = label;
-}
-
 async function updateRepositoryStatus() {
 	const status = document.querySelector("#repository-status");
 	const value = document.querySelector("#repository-status-value");
@@ -91,6 +83,19 @@ async function fetchWithTimeout(url, timeout = 5000) {
 function renderMetrics() {
 	document.querySelector("#orders-value").textContent = Number(metrics.orders).toLocaleString("en-IN");
 	document.querySelector("#average-value").textContent = formatCurrency(metrics.average);
+}
+
+function renderTools(query = "") {
+	const normalizedQuery = query.trim().toLocaleLowerCase("en");
+	const filteredTools = tools
+		.map((tool, index) => ({ tool, index }))
+		.filter(({ tool }) => `${tool.name} ${tool.category} ${tool.endpoint} ${tool.status}`.toLocaleLowerCase("en").includes(normalizedQuery));
+	const grid = document.querySelector("#tools-grid");
+	if (!filteredTools.length) {
+		grid.innerHTML = `<div class="tools-empty"><p>${normalizedQuery ? "No matching tools found." : "No ecosystem tools are configured yet."}</p>${normalizedQuery ? "" : '<button class="text-button" type="button" data-add-tool>Add your first tool <span aria-hidden="true">↗</span></button>'}</div>`;
+		return;
+	}
+	grid.innerHTML = filteredTools.map(({ tool, index }) => `<article class="tool-card"><span class="tool-mark" aria-hidden="true">${escapeHTML(tool.name.trim().charAt(0).toUpperCase() || "T")}</span><div class="tool-copy"><strong>${escapeHTML(tool.name)}</strong><small>${escapeHTML(tool.category)}</small><span class="status status-${escapeHTML(tool.statusKey)}">${escapeHTML(tool.status)}</span></div><details class="section-menu"><summary aria-label="${escapeHTML(tool.name)} options" title="Tool options">···</summary><button type="button" data-edit-tool="${index}">Edit</button></details></article>`).join("");
 }
 
 function getTableRows(kind, query) {
@@ -146,9 +151,14 @@ function setView(viewName) {
 	document.querySelector("#breadcrumb-current").textContent = view.title;
 	document.querySelector("#page-title").textContent = view.heading;
 	document.querySelector("#page-subtitle").textContent = view.subtitle;
+	document.querySelector("#table-menu-summary").setAttribute("aria-label", `${view.title} options`);
+	document.querySelector("#table-edit-action").dataset.editSection = view.kind;
 	document.querySelector(".metric-grid").hidden = viewName !== "overview";
+	document.querySelector(".tools-panel").hidden = viewName !== "overview";
+	document.querySelector(".orders-panel").hidden = viewName === "overview";
 	document.querySelector(".period-select").hidden = viewName !== "overview";
 	tableSearch.value = "";
+	renderTools(globalSearch.value);
 	renderTable();
 	window.scrollTo({ top: 0, behavior: "smooth" });
 }
@@ -158,6 +168,19 @@ function fillEditor() {
 	renderEditorRecords("orders", orders);
 	renderEditorRecords("payments", payments);
 	renderEditorRecords("tools", tools);
+}
+
+function openEditor(section, toolIndex) {
+	fillEditor();
+	editDialog.showModal();
+	document.querySelector(`[data-editor-section="${section}"]`)?.scrollIntoView({ block: "start" });
+	if (Number.isInteger(toolIndex)) {
+		const record = document.querySelector(`#tools-editor .editor-record[data-source-index="${toolIndex}"]`);
+		if (record) {
+			record.open = true;
+			record.scrollIntoView({ block: "nearest" });
+		}
+	}
 }
 
 const editorFields = {
@@ -292,6 +315,7 @@ function restoreDefaults() {
 		return;
 	}
 	renderMetrics();
+	renderTools(globalSearch.value);
 	renderTable();
 	fillEditor();
 	showToast("Dashboard restored to default data.");
@@ -299,9 +323,28 @@ function restoreDefaults() {
 
 document.querySelectorAll(".nav-link[data-view]").forEach((link) => link.addEventListener("click", () => setView(link.dataset.view)));
 document.querySelectorAll("[data-open-view]").forEach((button) => button.addEventListener("click", () => setView(button.dataset.openView)));
+document.addEventListener("click", (event) => {
+	const sectionEdit = event.target.closest("[data-edit-section]");
+	if (sectionEdit) {
+		sectionEdit.closest("details")?.removeAttribute("open");
+		openEditor(sectionEdit.dataset.editSection);
+		return;
+	}
+	const toolEdit = event.target.closest("[data-edit-tool]");
+	if (toolEdit) {
+		toolEdit.closest("details")?.removeAttribute("open");
+		openEditor("tools", Number(toolEdit.dataset.editTool));
+		return;
+	}
+	if (event.target.closest("[data-add-tool]")) {
+		openEditor("tools");
+		document.querySelector('[data-add-record="tools"]').click();
+	}
+});
 tableSearch.addEventListener("input", renderTable);
 globalSearch.addEventListener("input", () => {
 	tableSearch.value = globalSearch.value;
+	renderTools(globalSearch.value);
 	renderTable();
 });
 
@@ -331,8 +374,7 @@ document.querySelector("#export-button").addEventListener("click", () => {
 });
 
 document.querySelector("#edit-zone-button").addEventListener("click", () => {
-	fillEditor();
-	editDialog.showModal();
+	openEditor("summary");
 });
 document.querySelector("#close-editor").addEventListener("click", () => editDialog.close());
 document.querySelector("#reset-editor").addEventListener("click", restoreDefaults);
@@ -367,6 +409,7 @@ editorForm.addEventListener("submit", (event) => {
 		payments = nextPayments;
 		tools = nextTools;
 		renderMetrics();
+		renderTools(globalSearch.value);
 		renderTable();
 		editDialog.close();
 		showToast("Dashboard changes saved in this browser.");
@@ -427,11 +470,10 @@ async function loadDashboardData() {
 			}
 		}
 		renderMetrics();
+		renderTools(globalSearch.value);
 		renderTable();
-		setSystemStatus("online", "Online");
 	} catch (error) {
 		console.warn("Could not load dashboard data:", error);
-		setSystemStatus("offline", "Offline");
 		showToast("Dashboard data could not be loaded. Refresh the page and try again.");
 	} finally {
 		document.querySelector("#app-loader").classList.add("is-hidden");
@@ -439,6 +481,7 @@ async function loadDashboardData() {
 }
 
 renderMetrics();
+renderTools();
 renderTable();
 updateRepositoryStatus();
 window.setInterval(updateRepositoryStatus, 300000);

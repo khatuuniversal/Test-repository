@@ -16,8 +16,8 @@
     <div class="app-shell">
       <aside class="sidebar" aria-label="Main navigation">
         <a class="brand" href="#overview" aria-label="Khatu Universal home">
-           <span class="brand-mark">K<span>.</span></span>
-           <span class="brand-copy"><strong>KHATU</strong><small>UNIVERSAL</small></span>
+            <img class="brand-mark" src="https://avatars.githubusercontent.com/u/322885533?v=4" alt="" />
+            <span class="brand-copy"><strong>Admin</strong></span>
         </a>
 
         <div class="workspace-label">WORKSPACE</div>
@@ -28,26 +28,13 @@
           <button class="nav-link" data-view="tools"><span class="nav-icon">⚙</span><span>Tools</span></button>
         </nav>
 
-        <div class="sidebar-bottom">
-          <div class="help-card">
-            <span class="help-mark">?</span>
-            <div><strong>Need help?</strong><small>Contact our support team</small></div>
-            <span class="help-arrow">↗</span>
-          </div>
-            <button class="profile-button" type="button" aria-label="Profile">
-            <span class="avatar avatar-owner">KU</span>
-            <span class="profile-copy"><strong>Khatu Universal</strong><small>Administrator</small></span>
-            <span class="profile-more">···</span>
-          </button>
-        </div>
       </aside>
 
       <main class="main-area">
         <header class="topbar">
           <div class="breadcrumb"><span>Khatu Universal</span><span class="crumb-slash">/</span><strong id="breadcrumb-current">Dashboard</strong></div>
           <div class="topbar-actions">
-            <div class="system-status is-loading" id="system-status" role="status" aria-live="polite"><span class="system-status-dot"></span><span id="system-status-value">Connecting</span></div>
-            <a class="repository-status" id="repository-status" href="https://github.com/khatuuniversal/Test-repository" target="_blank" rel="noreferrer" title="Latest commit on the Test-repository main branch"><span class="repository-status-dot"></span><span><strong>main</strong><small id="repository-status-value">Checking GitHub</small></span></a>
+            <a class="repository-status" id="repository-status" href="https://github.com/khatuuniversal/Test-repository" target="_blank" rel="noreferrer" title="Latest commit on the Test-repository default branch"><span class="repository-status-dot"></span><span><small id="repository-status-value">Checking GitHub</small></span></a>
             <label class="search-box"><span aria-hidden="true">⌕</span><input id="global-search" type="search" placeholder="Search dashboard records" aria-label="Search dashboard records" /><kbd>⌘ K</kbd></label>
             <span class="avatar avatar-top">KU</span>
           </div>
@@ -69,27 +56,35 @@
 
           <section class="metric-grid" aria-label="Key metrics">
             <article class="metric-card">
-              <div class="metric-top"><span>Total orders</span><span class="metric-icon icon-coral">▤</span></div>
+              <div class="metric-top"><span>Total orders</span><span class="metric-icon icon-coral">▤</span><details class="section-menu"><summary aria-label="Total orders options" title="Section options">···</summary><button type="button" data-edit-section="summary">Edit</button></details></div>
               <div class="metric-value" id="orders-value">1,284</div>
               <div class="metric-foot"><span class="trend trend-up">↗ 8.2%</span><span>vs. previous period</span></div>
             </article>
             <article class="metric-card">
-              <div class="metric-top"><span>Average order value</span><span class="metric-icon icon-yellow">◈</span></div>
+              <div class="metric-top"><span>Average order value</span><span class="metric-icon icon-yellow">◈</span><details class="section-menu"><summary aria-label="Average order value options" title="Section options">···</summary><button type="button" data-edit-section="summary">Edit</button></details></div>
               <div class="metric-value" id="average-value">₹1,936</div>
               <div class="metric-foot"><span class="trend trend-down">↘ 2.1%</span><span>vs. previous period</span></div>
             </article>
           </section>
 
-          <section class="panel orders-panel">
+          <section class="panel tools-panel" id="overview-tools" aria-labelledby="tools-panel-title">
+            <div class="panel-heading">
+              <div><p class="panel-kicker">KHATU UNIVERSAL ECOSYSTEM</p><h2 id="tools-panel-title">Tools</h2></div>
+              <div class="panel-actions"><button class="text-button" type="button" data-add-tool><span aria-hidden="true">+</span> Add tool</button><details class="section-menu"><summary aria-label="Tools options" title="Section options">···</summary><button type="button" data-edit-section="tools">Edit</button></details></div>
+            </div>
+            <div class="tools-grid" id="tools-grid"></div>
+          </section>
+
+          <section class="panel orders-panel" hidden>
             <div class="panel-heading orders-heading">
               <div><p class="panel-kicker">RECENT ACTIVITY</p><h2 id="table-title">Recent orders</h2></div>
-              <div class="table-actions"><label class="table-search"><span aria-hidden="true">⌕</span><input id="table-search" type="search" placeholder="Search..." aria-label="Search table" /></label><button class="text-button" data-open-view="orders" type="button">All orders <span>↗</span></button></div>
+              <div class="table-actions"><label class="table-search"><span aria-hidden="true">⌕</span><input id="table-search" type="search" placeholder="Search..." aria-label="Search table" /></label><button class="text-button" data-open-view="orders" type="button">All orders <span>↗</span></button><details class="section-menu"><summary id="table-menu-summary" aria-label="Orders options" title="Section options">···</summary><button id="table-edit-action" type="button" data-edit-section="orders">Edit</button></details></div>
             </div>
             <div class="table-scroll"><table><thead id="table-head"></thead><tbody id="table-body"></tbody></table></div>
             <div class="table-footer"><span id="table-count">Showing recent orders</span><div class="pagination"><button type="button" aria-label="Previous page" disabled>←</button><button type="button" aria-label="Next page">→</button></div></div>
           </section>
 
-          <footer class="page-footer"><span>© 2026 Khatu Universal</span><span><i class="footer-dot"></i>Dashboard: <strong id="system-footer-status">Connecting</strong></span><span>Demo data</span></footer>
+          <footer class="page-footer"><span>© 2026 Khatu Universal</span></footer>
         </div>
       </main>
     </div>
@@ -100,22 +95,22 @@
       </div>
       <form id="editor-form">
         <div class="editor-scroll">
-          <section class="editor-section">
+          <section class="editor-section" data-editor-section="summary">
             <h3>Summary metrics</h3>
             <div class="editor-metrics">
               <label>Total orders<input name="orders" type="number" min="0" step="1" required /></label>
               <label>Average order value (INR)<input name="average" type="number" min="0" step="1" required /></label>
             </div>
           </section>
-          <section class="editor-section">
+          <section class="editor-section" data-editor-section="orders">
             <div class="editor-section-heading"><div><h3>Orders</h3><p class="editor-help">Update order details and status.</p></div><button class="editor-add" type="button" data-add-record="orders"><span aria-hidden="true">+</span> Add order</button></div>
             <div class="editor-record-list" id="orders-editor"></div>
           </section>
-          <section class="editor-section">
+          <section class="editor-section" data-editor-section="payments">
             <div class="editor-section-heading"><div><h3>Finance payments</h3><p class="editor-help">Track payment amounts, methods, dates, and statuses.</p></div><button class="editor-add" type="button" data-add-record="payments"><span aria-hidden="true">+</span> Add payment</button></div>
             <div class="editor-record-list" id="payments-editor"></div>
           </section>
-          <section class="editor-section">
+          <section class="editor-section" data-editor-section="tools">
             <div class="editor-section-heading"><div><h3>Tools</h3><p class="editor-help">Manage tool details and connection status. Credentials are not stored here.</p></div><button class="editor-add" type="button" data-add-record="tools"><span aria-hidden="true">+</span> Add tool</button></div>
             <div class="editor-record-list" id="tools-editor"></div>
           </section>
