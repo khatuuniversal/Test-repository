@@ -9,6 +9,17 @@
     { "id": "#KU-2078", "name": "Arjun Mehta", "initials": "AM", "tone": "initial-blue", "date": "Oct 25, 2026", "amount": 1560, "status": "Pending", "statusKey": "pending" },
     { "id": "#KU-2077", "name": "Sara Khan", "initials": "SK", "tone": "initial-yellow", "date": "Oct 25, 2026", "amount": 5200, "status": "Processing", "statusKey": "processing" }
   ],
+  "payments": [
+    { "id": "#PAY-2084", "orderId": "#KU-2084", "customer": "Aarav Sharma", "date": "Oct 28, 2026", "method": "UPI", "amount": 4250, "status": "Paid", "statusKey": "paid" },
+    { "id": "#PAY-2083", "orderId": "#KU-2083", "customer": "Meera Patel", "date": "Oct 28, 2026", "method": "Card", "amount": 1890, "status": "Pending", "statusKey": "pending" },
+    { "id": "#PAY-2082", "orderId": "#KU-2082", "customer": "Kabir Singh", "date": "Oct 27, 2026", "method": "UPI", "amount": 6320, "status": "Pending", "statusKey": "pending" },
+    { "id": "#PAY-2081", "orderId": "#KU-2081", "customer": "Anaya Gupta", "date": "Oct 27, 2026", "method": "Card", "amount": 2750, "status": "Paid", "statusKey": "paid" },
+    { "id": "#PAY-2080", "orderId": "#KU-2080", "customer": "Vivaan Verma", "date": "Oct 26, 2026", "method": "UPI", "amount": 980, "status": "Refunded", "statusKey": "refunded" },
+    { "id": "#PAY-2079", "orderId": "#KU-2079", "customer": "Ishita Joshi", "date": "Oct 26, 2026", "method": "Bank transfer", "amount": 3480, "status": "Paid", "statusKey": "paid" },
+    { "id": "#PAY-2078", "orderId": "#KU-2078", "customer": "Arjun Mehta", "date": "Oct 25, 2026", "method": "UPI", "amount": 1560, "status": "Failed", "statusKey": "failed" },
+    { "id": "#PAY-2077", "orderId": "#KU-2077", "customer": "Sara Khan", "date": "Oct 25, 2026", "method": "Card", "amount": 5200, "status": "Paid", "statusKey": "paid" }
+  ],
+  "tools": [],
   "inventory": [
     { "name": "Cotton Kurta Set", "sku": "SKU-1042", "stock": 4, "tone": "", "mark": "C" },
     { "name": "Handmade Tote Bag", "sku": "SKU-0871", "stock": 7, "tone": "thumb-coral", "mark": "H" },

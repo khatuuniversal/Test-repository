@@ -1,8 +1,8 @@
-const DEFAULT_METRICS = { sales: 248560, orders: 1284, customers: 186, average: 1936 };
+const DEFAULT_METRICS = { orders: 1284, customers: 186, average: 1936 };
 const PERIOD_METRICS = {
-	week: { sales: 248560, orders: 1284, customers: 186, average: 1936 },
-	month: { sales: 934820, orders: 4892, customers: 624, average: 1911 },
-	year: { sales: 7826410, orders: 38416, customers: 4820, average: 2037 },
+	week: { orders: 1284, customers: 186, average: 1936 },
+	month: { orders: 4892, customers: 624, average: 1911 },
+	year: { orders: 38416, customers: 4820, average: 2037 },
 };
 const STORAGE_KEY = "khatu-universal-dashboard-v1";
 const ALLOWED_TONES = new Set(["", "initial-coral", "initial-blue", "initial-yellow", "thumb-coral", "thumb-blue"]);
@@ -10,6 +10,8 @@ const views = {
 	overview: { title: "Dashboard", heading: "Welcome, Khatu Universal", subtitle: "Here is what is happening in your business today.", tableTitle: "Recent orders", kind: "orders" },
 	orders: { title: "Orders", heading: "Your orders", subtitle: "Track every order and its current status.", tableTitle: "All orders", kind: "orders" },
 	inventory: { title: "Inventory", heading: "Your inventory", subtitle: "Review your products and current stock levels.", tableTitle: "Low-stock products", kind: "inventory" },
+	finance: { title: "Finance", heading: "Payments and finance", subtitle: "Review and manage payment records.", tableTitle: "Payment records", kind: "payments" },
+	tools: { title: "Tools", heading: "Connected tools", subtitle: "Manage tool details and track connection setup.", tableTitle: "Tool connections", kind: "tools" },
 	customers: { title: "Customers", heading: "Your customers", subtitle: "Keep track of customer relationships and purchases.", tableTitle: "Recent customers", kind: "customers" },
 	reports: { title: "Reports", heading: "Business reports", subtitle: "A summary of sales and order performance.", tableTitle: "Sales orders", kind: "orders" },
 };
@@ -27,7 +29,9 @@ let metrics = { ...DEFAULT_METRICS };
 let orders = [];
 let inventory = [];
 let customers = [];
-let dashboardDefaults = { orders: [], inventory: [], customers: [] };
+let payments = [];
+let tools = [];
+let dashboardDefaults = { orders: [], inventory: [], customers: [], payments: [], tools: [] };
 
 function escapeHTML(value) {
 	return String(value ?? "").replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[character]);
@@ -49,21 +53,9 @@ function showToast(message) {
 }
 
 function renderMetrics() {
-	document.querySelector("#sales-value").textContent = formatCurrency(metrics.sales);
 	document.querySelector("#orders-value").textContent = Number(metrics.orders).toLocaleString("en-IN");
 	document.querySelector("#customers-value").textContent = `+${Number(metrics.customers).toLocaleString("en-IN")}`;
 	document.querySelector("#average-value").textContent = formatCurrency(metrics.average);
-}
-
-function renderStock() {
-	const stockList = document.querySelector("#low-stock-list");
-	stockList.innerHTML = inventory.slice(0, 3).map((item) => `
-		<div class="stock-item">
-			<span class="product-thumb ${safeTone(item.tone)}">${escapeHTML(item.mark)}</span>
-			<span class="product-info"><strong>${escapeHTML(item.name)}</strong><small>${escapeHTML(item.sku)}</small></span>
-			<span class="stock-pill">${Number(item.stock).toLocaleString("en-IN")} left</span>
-		</div>
-	`).join("");
 }
 
 function getTableRows(kind, query) {
@@ -86,6 +78,24 @@ function getTableRows(kind, query) {
 			noun: filtered.length === 1 ? "customer" : "customers",
 		};
 	}
+	if (kind === "payments") {
+		const filtered = payments.filter((payment) => `${payment.id} ${payment.orderId} ${payment.customer} ${payment.method} ${payment.status}`.toLocaleLowerCase("en").includes(normalizedQuery));
+		return {
+			header: "<tr><th>Payment ID</th><th>Order</th><th>Customer</th><th>Date</th><th>Method</th><th>Amount</th><th>Status</th></tr>",
+			rows: filtered.map((payment) => `<tr><td class="order-id">${escapeHTML(payment.id)}</td><td>${escapeHTML(payment.orderId)}</td><td>${escapeHTML(payment.customer)}</td><td>${escapeHTML(payment.date)}</td><td>${escapeHTML(payment.method)}</td><td>${formatCurrency(payment.amount)}</td><td><span class="status status-${payment.statusKey}">${escapeHTML(payment.status)}</span></td></tr>`),
+			total: filtered.length,
+			noun: filtered.length === 1 ? "payment" : "payments",
+		};
+	}
+	if (kind === "tools") {
+		const filtered = tools.filter((tool) => `${tool.name} ${tool.category} ${tool.endpoint} ${tool.status}`.toLocaleLowerCase("en").includes(normalizedQuery));
+		return {
+			header: "<tr><th>Tool</th><th>Category</th><th>Endpoint</th><th>Connection status</th></tr>",
+			rows: filtered.map((tool) => `<tr><td><strong>${escapeHTML(tool.name)}</strong></td><td>${escapeHTML(tool.category)}</td><td>${escapeHTML(tool.endpoint || "Not configured")}</td><td><span class="status status-${tool.statusKey}">${escapeHTML(tool.status)}</span></td></tr>`),
+			total: filtered.length,
+			noun: filtered.length === 1 ? "tool" : "tools",
+		};
+	}
 	const filtered = orders.filter((order) => `${order.id} ${order.name} ${order.status}`.toLocaleLowerCase("en").includes(normalizedQuery));
 	return {
 		header: "<tr><th>Order ID</th><th>Customer</th><th>Date</th><th>Amount</th><th>Status</th></tr>",
@@ -99,7 +109,8 @@ function renderTable() {
 	const view = views[activeView];
 	const result = getTableRows(view.kind, tableSearch.value || globalSearch.value);
 	tableHead.innerHTML = result.header;
-	tableBody.innerHTML = result.rows.length ? result.rows.join("") : '<tr><td class="empty-state" colspan="5">No results found.</td></tr>';
+	const columnCount = (result.header.match(/<th>/g) || []).length;
+	tableBody.innerHTML = result.rows.length ? result.rows.join("") : `<tr><td class="empty-state" colspan="${columnCount}">No results found.</td></tr>`;
 	document.querySelector("#table-title").textContent = view.tableTitle;
 	document.querySelector("#table-count").textContent = `${result.total} ${result.noun} found`;
 	document.querySelector("[data-view='orders'] .nav-count").textContent = orders.length;
@@ -118,9 +129,8 @@ function setView(viewName) {
 	document.querySelector("#breadcrumb-current").textContent = view.title;
 	document.querySelector("#page-title").textContent = view.heading;
 	document.querySelector("#page-subtitle").textContent = view.subtitle;
-	document.querySelector(".metric-grid").hidden = viewName === "customers" || viewName === "inventory";
-	document.querySelector(".content-grid").hidden = viewName === "customers" || viewName === "inventory";
-	document.querySelector(".stock-panel").hidden = viewName === "orders" || viewName === "reports";
+	document.querySelector(".metric-grid").hidden = viewName !== "overview";
+	document.querySelector(".period-select").hidden = viewName !== "overview";
 	tableSearch.value = "";
 	renderTable();
 	window.scrollTo({ top: 0, behavior: "smooth" });
@@ -131,6 +141,8 @@ function fillEditor() {
 	renderEditorRecords("orders", orders);
 	renderEditorRecords("inventory", inventory);
 	renderEditorRecords("customers", customers);
+	renderEditorRecords("payments", payments);
+	renderEditorRecords("tools", tools);
 }
 
 const editorFields = {
@@ -153,27 +165,51 @@ const editorFields = {
 		{ key: "spent", label: "Total spent (INR)", type: "number" },
 		{ key: "joined", label: "Joined" },
 	],
+	payments: [
+		{ key: "id", label: "Payment ID" },
+		{ key: "orderId", label: "Order ID" },
+		{ key: "customer", label: "Customer" },
+		{ key: "date", label: "Date" },
+		{ key: "method", label: "Payment method" },
+		{ key: "amount", label: "Amount (INR)", type: "number" },
+		{ key: "status", label: "Status", type: "status" },
+	],
+	tools: [
+		{ key: "name", label: "Tool name" },
+		{ key: "category", label: "Category" },
+		{ key: "endpoint", label: "Endpoint URL", type: "url", required: false },
+		{ key: "status", label: "Connection status", type: "status" },
+	],
 };
 
 const editorDefaults = {
 	orders: { id: "", name: "", initials: "", tone: "", date: "", amount: 0, status: "Pending", statusKey: "pending" },
 	inventory: { name: "", sku: "", stock: 0, tone: "", mark: "" },
 	customers: { name: "", initials: "", tone: "", email: "", orders: 0, spent: 0, joined: "" },
+	payments: { id: "", orderId: "", customer: "", date: "", method: "", amount: 0, status: "Pending", statusKey: "pending" },
+	tools: { name: "", category: "", endpoint: "", status: "Not connected", statusKey: "not-connected" },
 };
 
 function renderEditorField(collection, field, value) {
-	const inputType = field.type === "number" || field.type === "email" ? field.type : "text";
+	const inputType = ["number", "email", "url"].includes(field.type) ? field.type : "text";
+	const statusOptions = collection === "orders"
+		? ["Delivered", "Processing", "Pending", "Cancelled"]
+		: collection === "payments"
+			? ["Paid", "Pending", "Failed", "Refunded"]
+			: ["Connected", "Setup required", "Not connected"];
+	const required = field.required === false ? "" : " required";
 	const control = field.type === "status"
-		? `<select data-editor-field="${field.key}" required>${["Delivered", "Processing", "Pending", "Cancelled"].map((status) => `<option${value === status ? " selected" : ""}>${status}</option>`).join("")}</select>`
-		: `<input data-editor-field="${field.key}" type="${inputType}" value="${escapeHTML(value)}"${inputType === "number" ? ' min="0" step="1"' : ""} required />`;
+		? `<select data-editor-field="${field.key}"${required}>${statusOptions.map((status) => `<option${value === status ? " selected" : ""}>${status}</option>`).join("")}</select>`
+		: `<input data-editor-field="${field.key}" type="${inputType}" value="${escapeHTML(value)}"${inputType === "number" ? ' min="0" step="1"' : ""}${required} />`;
 	return `<label class="editor-field">${field.label}${control}</label>`;
 }
 
 function renderEditorRecord(collection, record, sourceIndex) {
 	const fields = editorFields[collection].map((field) => renderEditorField(collection, field, record[field.key] ?? "")).join("");
-	const title = collection === "orders" ? record.id || "New order" : record.name || (collection === "inventory" ? "New product" : "New customer");
-	const detail = collection === "orders" ? record.name : collection === "inventory" ? record.sku : record.email;
-	return `<details class="editor-record" data-source-index="${sourceIndex}"><summary><span class="record-summary-title">${escapeHTML(title)}</span><span class="record-summary-detail">${escapeHTML(detail || "Edit details")}</span><span class="record-chevron" aria-hidden="true">⌄</span></summary><div class="editor-record-fields">${fields}<button class="record-remove" type="button" aria-label="Remove ${collection === "orders" ? "order" : collection === "inventory" ? "product" : "customer"}">Remove</button></div></details>`;
+	const title = collection === "orders" || collection === "payments" ? record.id || `New ${collection === "orders" ? "order" : "payment"}` : record.name || (collection === "inventory" ? "New product" : collection === "tools" ? "New tool" : "New customer");
+	const detail = collection === "orders" ? record.name : collection === "inventory" ? record.sku : collection === "customers" ? record.email : collection === "payments" ? record.customer : record.category;
+	const singular = { orders: "order", inventory: "product", customers: "customer", payments: "payment", tools: "tool" }[collection];
+	return `<details class="editor-record" data-source-index="${sourceIndex}"><summary><span class="record-summary-title">${escapeHTML(title)}</span><span class="record-summary-detail">${escapeHTML(detail || "Edit details")}</span><span class="record-chevron" aria-hidden="true">⌄</span></summary><div class="editor-record-fields">${fields}<button class="record-remove" type="button" aria-label="Remove ${singular}">Remove</button></div></details>`;
 }
 
 function renderEditorRecords(collection, records) {
@@ -195,8 +231,12 @@ function collectEditorRecords(collection, currentRecords) {
 			record.statusKey = record.status.toLowerCase();
 		} else if (collection === "inventory") {
 			record.mark = record.name.trim().charAt(0).toUpperCase();
-		} else {
+		} else if (collection === "customers") {
 			record.initials = record.name.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0].toUpperCase()).join("");
+		} else if (collection === "payments") {
+			record.statusKey = record.status.toLowerCase();
+		} else {
+			record.statusKey = record.status.toLowerCase().replaceAll(" ", "-");
 		}
 		return record;
 	});
@@ -211,8 +251,10 @@ function validateRecordList(records, id, requiredFields, numericFields) {
 			if (numericFields.includes(field) && (typeof record[field] !== "number" || !Number.isFinite(record[field]) || record[field] < 0)) throw new Error(`Record ${index + 1}: "${field}" must be a non-negative number.`);
 			if (!numericFields.includes(field) && typeof record[field] !== "string") throw new Error(`Record ${index + 1}: "${field}" must be text.`);
 		}
-		if (!ALLOWED_TONES.has(record.tone)) throw new Error(`Record ${index + 1} has an unsupported display tone.`);
+		if ("tone" in record && !ALLOWED_TONES.has(record.tone)) throw new Error(`Record ${index + 1} has an unsupported display tone.`);
 		if (id === "orders" && !["delivered", "processing", "pending", "cancelled"].includes(record.statusKey)) throw new Error(`Record ${index + 1} has an unsupported statusKey.`);
+		if (id === "payments" && !["paid", "pending", "failed", "refunded"].includes(record.statusKey)) throw new Error(`Record ${index + 1} has an unsupported payment status.`);
+		if (id === "tools" && !["connected", "setup-required", "not-connected"].includes(record.statusKey)) throw new Error(`Record ${index + 1} has an unsupported connection status.`);
 	}
 	return records.map((record) => ({
 		...record,
@@ -220,7 +262,7 @@ function validateRecordList(records, id, requiredFields, numericFields) {
 	}));
 }
 
-function saveDashboard(state = { metrics, orders, inventory, customers }) {
+function saveDashboard(state = { metrics, orders, inventory, customers, payments, tools }) {
 	try {
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 		return true;
@@ -245,6 +287,8 @@ function restoreDefaults() {
 	orders = JSON.parse(JSON.stringify(dashboardDefaults.orders));
 	inventory = JSON.parse(JSON.stringify(dashboardDefaults.inventory));
 	customers = JSON.parse(JSON.stringify(dashboardDefaults.customers));
+	payments = JSON.parse(JSON.stringify(dashboardDefaults.payments));
+	tools = JSON.parse(JSON.stringify(dashboardDefaults.tools));
 	try {
 		localStorage.removeItem(STORAGE_KEY);
 	} catch (error) {
@@ -253,7 +297,6 @@ function restoreDefaults() {
 		return;
 	}
 	renderMetrics();
-	renderStock();
 	renderTable();
 	fillEditor();
 	showToast("Dashboard restored to default data.");
@@ -263,7 +306,6 @@ document.querySelectorAll(".nav-link[data-view]").forEach((link) => link.addEven
 document.querySelectorAll("[data-open-view]").forEach((button) => button.addEventListener("click", () => setView(button.dataset.openView)));
 tableSearch.addEventListener("input", renderTable);
 globalSearch.addEventListener("input", () => {
-	if (activeView !== "orders") setView("orders");
 	tableSearch.value = globalSearch.value;
 	renderTable();
 });
@@ -278,15 +320,19 @@ document.querySelector("#period-select").addEventListener("change", (event) => {
 });
 
 document.querySelector("#export-button").addEventListener("click", () => {
-	const headings = ["Order ID", "Customer", "Date", "Amount (INR)", "Status"];
-	const lines = [headings, ...orders.map((order) => [order.id, order.name, order.date, order.amount, order.status])];
+	const exportData = activeView === "finance"
+		? { filename: "khatu-universal-payments.csv", headings: ["Payment ID", "Order ID", "Customer", "Date", "Method", "Amount (INR)", "Status"], records: payments.map((payment) => [payment.id, payment.orderId, payment.customer, payment.date, payment.method, payment.amount, payment.status]) }
+		: activeView === "tools"
+			? { filename: "khatu-universal-tools.csv", headings: ["Tool", "Category", "Endpoint", "Status"], records: tools.map((tool) => [tool.name, tool.category, tool.endpoint, tool.status]) }
+			: { filename: "khatu-universal-orders.csv", headings: ["Order ID", "Customer", "Date", "Amount (INR)", "Status"], records: orders.map((order) => [order.id, order.name, order.date, order.amount, order.status]) };
+	const lines = [exportData.headings, ...exportData.records];
 	const csv = `\uFEFF${lines.map((line) => line.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(",")).join("\n")}`;
 	const link = document.createElement("a");
 	link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-	link.download = "khatu-universal-orders.csv";
+	link.download = exportData.filename;
 	link.click();
 	URL.revokeObjectURL(link.href);
-	showToast("Orders report downloaded.");
+	showToast(`${views[activeView].title} report downloaded.`);
 });
 
 document.querySelector("#edit-zone-button").addEventListener("click", () => {
@@ -315,18 +361,21 @@ editorForm.addEventListener("submit", (event) => {
 	event.preventDefault();
 	try {
 		const formData = new FormData(editorForm);
-		const nextMetrics = Object.fromEntries(["sales", "orders", "customers", "average"].map((key) => [key, Number(formData.get(key))]));
+		const nextMetrics = Object.fromEntries(["orders", "customers", "average"].map((key) => [key, Number(formData.get(key))]));
 		if (Object.values(nextMetrics).some((value) => !Number.isFinite(value) || value < 0)) throw new Error("Metrics must be non-negative numbers.");
 		const nextOrders = validateRecordList(collectEditorRecords("orders", orders), "orders", ["id", "name", "initials", "tone", "date", "amount", "status", "statusKey"], ["amount"]);
 		const nextInventory = validateRecordList(collectEditorRecords("inventory", inventory), "inventory", ["name", "sku", "stock", "tone", "mark"], ["stock"]);
 		const nextCustomers = validateRecordList(collectEditorRecords("customers", customers), "customers", ["name", "initials", "tone", "email", "orders", "spent", "joined"], ["orders", "spent"]);
-		if (!saveDashboard({ metrics: nextMetrics, orders: nextOrders, inventory: nextInventory, customers: nextCustomers })) return;
+		const nextPayments = validateRecordList(collectEditorRecords("payments", payments), "payments", ["id", "orderId", "customer", "date", "method", "amount", "status", "statusKey"], ["amount"]);
+		const nextTools = validateRecordList(collectEditorRecords("tools", tools), "tools", ["name", "category", "endpoint", "status", "statusKey"], []);
+		if (!saveDashboard({ metrics: nextMetrics, orders: nextOrders, inventory: nextInventory, customers: nextCustomers, payments: nextPayments, tools: nextTools })) return;
 		metrics = nextMetrics;
 		orders = nextOrders;
 		inventory = nextInventory;
 		customers = nextCustomers;
+		payments = nextPayments;
+		tools = nextTools;
 		renderMetrics();
-		renderStock();
 		renderTable();
 		editDialog.close();
 		showToast("Dashboard changes saved in this browser.");
@@ -357,28 +406,35 @@ async function loadDashboardData() {
 			orders: Array.isArray(data.orders) ? data.orders : [],
 			inventory: Array.isArray(data.inventory) ? data.inventory : [],
 			customers: Array.isArray(data.customers) ? data.customers : [],
+			payments: Array.isArray(data.payments) ? data.payments : [],
+			tools: Array.isArray(data.tools) ? data.tools : [],
 		};
 		orders = JSON.parse(JSON.stringify(dashboardDefaults.orders));
 		inventory = JSON.parse(JSON.stringify(dashboardDefaults.inventory));
 		customers = JSON.parse(JSON.stringify(dashboardDefaults.customers));
+		payments = validateRecordList(JSON.parse(JSON.stringify(dashboardDefaults.payments)), "payments", ["id", "orderId", "customer", "date", "method", "amount", "status", "statusKey"], ["amount"]);
+		tools = validateRecordList(JSON.parse(JSON.stringify(dashboardDefaults.tools)), "tools", ["name", "category", "endpoint", "status", "statusKey"], []);
 		const saved = readSavedDashboard();
 		if (saved && typeof saved === "object") {
-			if (saved.metrics && ["sales", "orders", "customers", "average"].every((key) => Number.isFinite(Number(saved.metrics[key])) && Number(saved.metrics[key]) >= 0)) {
-				metrics = Object.fromEntries(["sales", "orders", "customers", "average"].map((key) => [key, Number(saved.metrics[key])]));
+			if (saved.metrics && ["orders", "customers", "average"].every((key) => Number.isFinite(Number(saved.metrics[key])) && Number(saved.metrics[key]) >= 0)) {
+				metrics = Object.fromEntries(["orders", "customers", "average"].map((key) => [key, Number(saved.metrics[key])]));
 			}
 			try {
 				if (Array.isArray(saved.orders)) orders = validateRecordList(saved.orders, "orders", ["id", "name", "initials", "tone", "date", "amount", "status", "statusKey"], ["amount"]);
 				if (Array.isArray(saved.inventory)) inventory = validateRecordList(saved.inventory, "inventory", ["name", "sku", "stock", "tone", "mark"], ["stock"]);
 				if (Array.isArray(saved.customers)) customers = validateRecordList(saved.customers, "customers", ["name", "initials", "tone", "email", "orders", "spent", "joined"], ["orders", "spent"]);
+				if (Array.isArray(saved.payments)) payments = validateRecordList(saved.payments, "payments", ["id", "orderId", "customer", "date", "method", "amount", "status", "statusKey"], ["amount"]);
+				if (Array.isArray(saved.tools)) tools = validateRecordList(saved.tools, "tools", ["name", "category", "endpoint", "status", "statusKey"], []);
 			} catch (error) {
 				console.warn("Some saved dashboard records were invalid; defaults will be used:", error);
 				orders = JSON.parse(JSON.stringify(dashboardDefaults.orders));
 				inventory = JSON.parse(JSON.stringify(dashboardDefaults.inventory));
 				customers = JSON.parse(JSON.stringify(dashboardDefaults.customers));
+				payments = JSON.parse(JSON.stringify(dashboardDefaults.payments));
+				tools = JSON.parse(JSON.stringify(dashboardDefaults.tools));
 			}
 		}
 		renderMetrics();
-		renderStock();
 		renderTable();
 	} catch (error) {
 		console.error("Could not load dashboard data:", error);
@@ -389,6 +445,5 @@ async function loadDashboardData() {
 }
 
 renderMetrics();
-renderStock();
 renderTable();
 loadDashboardData();

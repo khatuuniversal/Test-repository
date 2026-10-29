@@ -76,7 +76,7 @@ h1 { margin-bottom: 6px; font-family: var(--font-hi); font-size: 24px; font-weig
 .button-primary { background: var(--green); color: white; }
 .button-primary:hover { background: var(--green-dark); }
 .button-primary span { font-size: 15px; }
-.metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; }
+.metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 13px; }
 .metric-card { position: relative; min-height: 137px; overflow: hidden; border: 1px solid var(--line); border-radius: 5px; background: var(--paper); padding: 16px 16px 14px; box-shadow: inset 0 1px rgb(255 255 255 / 84%), 0 8px 26px rgb(37 69 102 / 6%); backdrop-filter: blur(16px) saturate(135%); -webkit-backdrop-filter: blur(16px) saturate(135%); }
 .metric-sales { border-top: 2px solid var(--green); }
 .metric-top { display: flex; align-items: center; justify-content: space-between; color: #78847c; font-size: 10px; }
@@ -126,6 +126,7 @@ th:first-child, td:first-child { padding-left: 5px; }
 .customer-initial.initial-coral { background: #f8ece7; color: #b97a69; }.customer-initial.initial-blue { background: #eaf0f4; color: #68859b; }.customer-initial.initial-yellow { background: #f7f1e4; color: #a88a4d; }
 .status { display: inline-block; border-radius: 3px; padding: 4px 7px; font-size: 8px; font-weight: 600; }
 .status-delivered { background: #eaf4ed; color: #39805b; }.status-pending { background: #fbf3e5; color: #a9833f; }.status-processing { background: #edf1f7; color: #647d9c; }.status-cancelled { background: #faece9; color: #bb6b58; }
+.status-paid, .status-connected { background: #eaf4ed; color: #39805b; }.status-failed, .status-not-connected { background: #faece9; color: #bb6b58; }.status-refunded, .status-setup-required { background: #edf1f7; color: #647d9c; }
 .table-footer { display: flex; align-items: center; justify-content: space-between; min-height: 43px; color: #929c95; font-size: 9px; }
 .pagination { display: flex; gap: 5px; }
 .pagination button { display: grid; width: 25px; height: 25px; place-items: center; border: 1px solid #e8ebe5; border-radius: 3px; background: white; color: #69766d; cursor: pointer; }
@@ -202,6 +203,9 @@ th:first-child, td:first-child { padding-left: 5px; }
   .status-pending { background: rgb(189 140 36 / 20%); color: #f0cd7a; }
   .status-processing { background: rgb(74 120 168 / 22%); color: #a9d0f4; }
   .status-cancelled { background: rgb(193 89 68 / 20%); color: #ffad9a; }
+  .status-paid, .status-connected { background: rgb(46 140 95 / 20%); color: #91d6aa; }
+  .status-failed, .status-not-connected { background: rgb(193 89 68 / 20%); color: #ffad9a; }
+  .status-refunded, .status-setup-required { background: rgb(74 120 168 / 22%); color: #a9d0f4; }
   .app-loader { background: rgb(17 24 32 / 78%); }
 }
 
