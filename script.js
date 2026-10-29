@@ -5,6 +5,7 @@ const PERIOD_METRICS = {
 	year: { orders: 38416, average: 2037 },
 };
 const STORAGE_KEY = "khatu-universal-dashboard-v1";
+const REPOSITORY_API_URL = "https://api.github.com/repos/khatuuniversal/Test-repository/commits/main";
 const ALLOWED_TONES = new Set(["", "initial-coral", "initial-blue", "initial-yellow", "thumb-coral", "thumb-blue"]);
 const views = {
 	overview: { title: "Dashboard", heading: "Welcome, Khatu Universal", subtitle: "Here is what is happening in your business today.", tableTitle: "Recent orders", kind: "orders" },
@@ -45,6 +46,46 @@ function showToast(message) {
 	toast.classList.add("is-visible");
 	window.clearTimeout(toastTimer);
 	toastTimer = window.setTimeout(() => toast.classList.remove("is-visible"), 2600);
+}
+
+function setSystemStatus(state, label) {
+	const status = document.querySelector("#system-status");
+	status.classList.remove("is-loading", "is-online", "is-offline");
+	status.classList.add(`is-${state}`);
+	document.querySelector("#system-status-value").textContent = label;
+	document.querySelector("#system-footer-status").textContent = label;
+}
+
+async function updateRepositoryStatus() {
+	const status = document.querySelector("#repository-status");
+	const value = document.querySelector("#repository-status-value");
+	try {
+		const response = await fetch(REPOSITORY_API_URL, { headers: { Accept: "application/vnd.github+json" }, cache: "no-store" });
+		if (!response.ok) throw new Error(`GitHub returned ${response.status}`);
+		const commit = await response.json();
+		const shortSha = commit.sha.slice(0, 7);
+		status.classList.remove("is-offline");
+		status.classList.add("is-online");
+		status.href = `https://github.com/khatuuniversal/Test-repository/commit/${commit.sha}`;
+		status.title = `Latest commit on Test-repository main: ${shortSha}`;
+		value.textContent = `Latest ${shortSha}`;
+	} catch {
+		status.classList.remove("is-online");
+		status.classList.add("is-offline");
+		status.href = "https://github.com/khatuuniversal/Test-repository";
+		status.title = "GitHub main branch status is unavailable";
+		value.textContent = "Unavailable";
+	}
+}
+
+async function fetchWithTimeout(url, timeout = 5000) {
+	const controller = new AbortController();
+	const timeoutId = window.setTimeout(() => controller.abort(), timeout);
+	try {
+		return await fetch(url, { headers: { Accept: "application/json" }, signal: controller.signal });
+	} finally {
+		window.clearTimeout(timeoutId);
+	}
 }
 
 function renderMetrics() {
@@ -218,7 +259,7 @@ function validateRecordList(records, id, requiredFields, numericFields) {
 	}));
 }
 
-function saveDashboard(state = { metrics, orders, inventory, customers, payments, tools }) {
+function saveDashboard(state = { metrics, orders, payments, tools }) {
 	try {
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 		return true;
@@ -348,10 +389,19 @@ document.addEventListener("keydown", (event) => {
 
 async function loadDashboardData() {
 	try {
-		let response = await fetch("api/dashboard", { headers: { Accept: "application/json" } });
-		if (!response.ok) response = await fetch("dashboard-data.json", { headers: { Accept: "application/json" } });
-		if (!response.ok) throw new Error(`Dashboard data returned ${response.status}`);
-		const data = await response.json();
+		let data;
+		for (const source of ["api/dashboard", "dashboard-data.json"]) {
+			try {
+				const response = await fetchWithTimeout(source);
+				if (response.ok) {
+					data = await response.json();
+					break;
+				}
+			} catch {
+				continue;
+			}
+		}
+		if (!data) throw new Error("Dashboard data sources are unavailable.");
 		dashboardDefaults = {
 			orders: Array.isArray(data.orders) ? data.orders : [],
 			payments: Array.isArray(data.payments) ? data.payments : [],
@@ -378,8 +428,10 @@ async function loadDashboardData() {
 		}
 		renderMetrics();
 		renderTable();
+		setSystemStatus("online", "Online");
 	} catch (error) {
-		console.error("Could not load dashboard data:", error);
+		console.warn("Could not load dashboard data:", error);
+		setSystemStatus("offline", "Offline");
 		showToast("Dashboard data could not be loaded. Refresh the page and try again.");
 	} finally {
 		document.querySelector("#app-loader").classList.add("is-hidden");
@@ -388,4 +440,6 @@ async function loadDashboardData() {
 
 renderMetrics();
 renderTable();
+updateRepositoryStatus();
+window.setInterval(updateRepositoryStatus, 300000);
 loadDashboardData();

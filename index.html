@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f3f6fa" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#111820" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f4f4f1" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#121519" media="(prefers-color-scheme: dark)" />
     <title>Khatu Universal | Dashboard</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -46,6 +46,8 @@
         <header class="topbar">
           <div class="breadcrumb"><span>Khatu Universal</span><span class="crumb-slash">/</span><strong id="breadcrumb-current">Dashboard</strong></div>
           <div class="topbar-actions">
+            <div class="system-status is-loading" id="system-status" role="status" aria-live="polite"><span class="system-status-dot"></span><span id="system-status-value">Connecting</span></div>
+            <a class="repository-status" id="repository-status" href="https://github.com/khatuuniversal/Test-repository" target="_blank" rel="noreferrer" title="Latest commit on the Test-repository main branch"><span class="repository-status-dot"></span><span><strong>main</strong><small id="repository-status-value">Checking GitHub</small></span></a>
             <label class="search-box"><span aria-hidden="true">⌕</span><input id="global-search" type="search" placeholder="Search dashboard records" aria-label="Search dashboard records" /><kbd>⌘ K</kbd></label>
             <span class="avatar avatar-top">KU</span>
           </div>
@@ -87,7 +89,7 @@
             <div class="table-footer"><span id="table-count">Showing recent orders</span><div class="pagination"><button type="button" aria-label="Previous page" disabled>←</button><button type="button" aria-label="Next page">→</button></div></div>
           </section>
 
-          <footer class="page-footer"><span>© 2026 Khatu Universal</span><span><i class="footer-dot"></i>All systems operational</span><span>Demo data</span></footer>
+          <footer class="page-footer"><span>© 2026 Khatu Universal</span><span><i class="footer-dot"></i>Dashboard: <strong id="system-footer-status">Connecting</strong></span><span>Demo data</span></footer>
         </div>
       </main>
     </div>
@@ -125,7 +127,14 @@
         </div>
       </form>
     </dialog>
-    <div class="app-loader" id="app-loader" role="status" aria-label="Loading Khatu Universal dashboard"><span aria-hidden="true">∞</span></div>
+    <div class="app-loader" id="app-loader" role="status" aria-label="Loading Khatu Universal dashboard">
+      <div class="loader-skeleton" aria-hidden="true">
+        <div class="skeleton-title"></div>
+        <div class="skeleton-metrics"><span></span><span></span></div>
+        <div class="skeleton-table"><span></span><span></span><span></span></div>
+        <strong>Loading Khatu Universal</strong>
+      </div>
+    </div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
   </body>
 </html>
