@@ -24,11 +24,8 @@
         <nav class="primary-nav">
           <button class="nav-link is-active" data-view="overview"><span class="nav-icon">◫</span><span>Dashboard</span></button>
           <button class="nav-link" data-view="orders"><span class="nav-icon">▤</span><span>Orders</span><span class="nav-count">8</span></button>
-          <button class="nav-link" data-view="inventory"><span class="nav-icon">▦</span><span>Inventory</span></button>
           <button class="nav-link" data-view="finance"><span class="nav-icon">₹</span><span>Finance</span></button>
           <button class="nav-link" data-view="tools"><span class="nav-icon">⚙</span><span>Tools</span></button>
-          <button class="nav-link" data-view="customers"><span class="nav-icon">♙</span><span>Customers</span></button>
-          <button class="nav-link" data-view="reports"><span class="nav-icon">⌁</span><span>Reports</span></button>
         </nav>
 
         <div class="sidebar-bottom">
@@ -75,11 +72,6 @@
               <div class="metric-foot"><span class="trend trend-up">↗ 8.2%</span><span>vs. previous period</span></div>
             </article>
             <article class="metric-card">
-              <div class="metric-top"><span>New customers</span><span class="metric-icon icon-blue">♙</span></div>
-              <div class="metric-value" id="customers-value">+186</div>
-              <div class="metric-foot"><span class="trend trend-up">↗ 6.4%</span><span>vs. previous period</span></div>
-            </article>
-            <article class="metric-card">
               <div class="metric-top"><span>Average order value</span><span class="metric-icon icon-yellow">◈</span></div>
               <div class="metric-value" id="average-value">₹1,936</div>
               <div class="metric-foot"><span class="trend trend-down">↘ 2.1%</span><span>vs. previous period</span></div>
@@ -110,21 +102,12 @@
             <h3>Summary metrics</h3>
             <div class="editor-metrics">
               <label>Total orders<input name="orders" type="number" min="0" step="1" required /></label>
-              <label>New customers<input name="customers" type="number" min="0" step="1" required /></label>
               <label>Average order value (INR)<input name="average" type="number" min="0" step="1" required /></label>
             </div>
           </section>
           <section class="editor-section">
             <div class="editor-section-heading"><div><h3>Orders</h3><p class="editor-help">Update order details and status.</p></div><button class="editor-add" type="button" data-add-record="orders"><span aria-hidden="true">+</span> Add order</button></div>
             <div class="editor-record-list" id="orders-editor"></div>
-          </section>
-          <section class="editor-section">
-            <div class="editor-section-heading"><div><h3>Inventory</h3><p class="editor-help">Update product names, SKUs, and stock counts.</p></div><button class="editor-add" type="button" data-add-record="inventory"><span aria-hidden="true">+</span> Add product</button></div>
-            <div class="editor-record-list" id="inventory-editor"></div>
-          </section>
-          <section class="editor-section">
-            <div class="editor-section-heading"><div><h3>Customers</h3><p class="editor-help">Update customer details and purchase totals.</p></div><button class="editor-add" type="button" data-add-record="customers"><span aria-hidden="true">+</span> Add customer</button></div>
-            <div class="editor-record-list" id="customers-editor"></div>
           </section>
           <section class="editor-section">
             <div class="editor-section-heading"><div><h3>Finance payments</h3><p class="editor-help">Track payment amounts, methods, dates, and statuses.</p></div><button class="editor-add" type="button" data-add-record="payments"><span aria-hidden="true">+</span> Add payment</button></div>

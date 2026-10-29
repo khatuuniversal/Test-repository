@@ -19,17 +19,5 @@
     { "id": "#PAY-2078", "orderId": "#KU-2078", "customer": "Arjun Mehta", "date": "Oct 25, 2026", "method": "UPI", "amount": 1560, "status": "Failed", "statusKey": "failed" },
     { "id": "#PAY-2077", "orderId": "#KU-2077", "customer": "Sara Khan", "date": "Oct 25, 2026", "method": "Card", "amount": 5200, "status": "Paid", "statusKey": "paid" }
   ],
-  "tools": [],
-  "inventory": [
-    { "name": "Cotton Kurta Set", "sku": "SKU-1042", "stock": 4, "tone": "", "mark": "C" },
-    { "name": "Handmade Tote Bag", "sku": "SKU-0871", "stock": 7, "tone": "thumb-coral", "mark": "H" },
-    { "name": "Mint Table Lamp", "sku": "SKU-1128", "stock": 9, "tone": "thumb-blue", "mark": "M" }
-  ],
-  "customers": [
-    { "name": "Aarav Sharma", "initials": "AS", "tone": "", "email": "aarav.sharma@email.com", "orders": 12, "spent": 28450, "joined": "12 Sep, 2026" },
-    { "name": "Meera Patel", "initials": "MP", "tone": "initial-coral", "email": "meera.patel@email.com", "orders": 8, "spent": 18920, "joined": "18 Sep, 2026" },
-    { "name": "Kabir Singh", "initials": "KS", "tone": "initial-blue", "email": "kabir.singh@email.com", "orders": 6, "spent": 15360, "joined": "25 Sep, 2026" },
-    { "name": "Anaya Gupta", "initials": "AG", "tone": "initial-yellow", "email": "anaya.gupta@email.com", "orders": 5, "spent": 12750, "joined": "02 Oct, 2026" },
-    { "name": "Vivaan Verma", "initials": "VV", "tone": "", "email": "vivaan.verma@email.com", "orders": 4, "spent": 9980, "joined": "05 Oct, 2026" }
-  ]
+  "tools": []
 }
