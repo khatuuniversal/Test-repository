@@ -8,16 +8,12 @@ const STORAGE_KEY = "khatu-universal-dashboard-v1";
 const REPOSITORY_API_URL = "https://api.github.com/repos/khatuuniversal/Test-repository/commits/main";
 const ALLOWED_TONES = new Set(["", "initial-coral", "initial-blue", "initial-yellow", "thumb-coral", "thumb-blue"]);
 const views = {
-	overview: { title: "Dashboard", heading: "Welcome, Khatu Universal", subtitle: "Here is what is happening in your business today.", tableTitle: "Recent orders", kind: "orders" },
-	orders: { title: "Orders", heading: "Your orders", subtitle: "Track every order and its current status.", tableTitle: "All orders", kind: "orders" },
-	finance: { title: "Finance", heading: "Payments and finance", subtitle: "Review and manage payment records.", tableTitle: "Payment records", kind: "payments" },
-	tools: { title: "Tools", heading: "Connected tools", subtitle: "Manage tool details and track connection setup.", tableTitle: "Tool connections", kind: "tools" },
+	overview: { title: "Dashboard", heading: "Business overview", subtitle: "A clear view of order activity and payment movement.", eyebrow: "YOUR BUSINESS AT A GLANCE" },
+	orders: { title: "Orders", heading: "Order management", subtitle: "Review fulfillment status and keep every order moving.", eyebrow: "FULFILLMENT OPERATIONS" },
+	finance: { title: "Finance", heading: "Finance overview", subtitle: "Track incoming payments, exceptions, and reconciliation.", eyebrow: "PAYMENTS & RECONCILIATION" },
+	tools: { title: "Tools", heading: "Tool connections", subtitle: "Manage endpoint and connection metadata.", eyebrow: "KHATU UNIVERSAL ECOSYSTEM" },
 };
 
-const tableHead = document.querySelector("#table-head");
-const tableBody = document.querySelector("#table-body");
-const tableSearch = document.querySelector("#table-search");
-const globalSearch = document.querySelector("#global-search");
 const toast = document.querySelector("#toast");
 const editDialog = document.querySelector("#edit-dialog");
 const editorForm = document.querySelector("#editor-form");
@@ -27,6 +23,7 @@ let metrics = { ...DEFAULT_METRICS };
 let orders = [];
 let payments = [];
 let tools = [];
+let analytics = null;
 let dashboardDefaults = { orders: [], payments: [], tools: [] };
 
 function escapeHTML(value) {
@@ -85,6 +82,19 @@ function renderMetrics() {
 	document.querySelector("#average-value").textContent = formatCurrency(metrics.average);
 }
 
+function calculateAnalytics() {
+	const orderStatuses = ["Pending", "Processing", "Delivered", "Cancelled"];
+	const paymentStatuses = ["Paid", "Pending", "Failed", "Refunded"];
+	return {
+		orders: { total: orders.length, by_status: Object.fromEntries(orderStatuses.map((status) => [status, orders.filter((order) => order.status === status).length])) },
+		payments: {
+			paid_total: payments.filter((payment) => payment.status === "Paid").reduce((total, payment) => total + payment.amount, 0),
+			pending_total: payments.filter((payment) => payment.status === "Pending").reduce((total, payment) => total + payment.amount, 0),
+			by_status: Object.fromEntries(paymentStatuses.map((status) => [status, payments.filter((payment) => payment.status === status).length])),
+		},
+	};
+}
+
 function renderTools(query = "") {
 	const normalizedQuery = query.trim().toLocaleLowerCase("en");
 	const filteredTools = tools
@@ -98,10 +108,10 @@ function renderTools(query = "") {
 	grid.innerHTML = filteredTools.map(({ tool, index }) => `<article class="tool-card"><span class="tool-mark" aria-hidden="true">${escapeHTML(tool.name.trim().charAt(0).toUpperCase() || "T")}</span><div class="tool-copy"><strong>${escapeHTML(tool.name)}</strong><small>${escapeHTML(tool.category)}</small><span class="status status-${escapeHTML(tool.statusKey)}">${escapeHTML(tool.status)}</span></div><details class="section-menu"><summary aria-label="${escapeHTML(tool.name)} options" title="Tool options">···</summary><button type="button" data-edit-tool="${index}">Edit</button></details></article>`).join("");
 }
 
-function getTableRows(kind, query) {
+function getTableRows(kind, query, statusFilter = "") {
 	const normalizedQuery = query.trim().toLocaleLowerCase("en");
 	if (kind === "payments") {
-		const filtered = payments.filter((payment) => `${payment.id} ${payment.orderId} ${payment.customer} ${payment.method} ${payment.status}`.toLocaleLowerCase("en").includes(normalizedQuery));
+		const filtered = payments.filter((payment) => (!statusFilter || payment.status === statusFilter) && `${payment.id} ${payment.orderId} ${payment.customer} ${payment.method} ${payment.status}`.toLocaleLowerCase("en").includes(normalizedQuery));
 		return {
 			header: "<tr><th>Payment ID</th><th>Order</th><th>Customer</th><th>Date</th><th>Method</th><th>Amount</th><th>Status</th></tr>",
 			rows: filtered.map((payment) => `<tr><td class="order-id">${escapeHTML(payment.id)}</td><td>${escapeHTML(payment.orderId)}</td><td>${escapeHTML(payment.customer)}</td><td>${escapeHTML(payment.date)}</td><td>${escapeHTML(payment.method)}</td><td>${formatCurrency(payment.amount)}</td><td><span class="status status-${payment.statusKey}">${escapeHTML(payment.status)}</span></td></tr>`),
@@ -110,7 +120,7 @@ function getTableRows(kind, query) {
 		};
 	}
 	if (kind === "tools") {
-		const filtered = tools.filter((tool) => `${tool.name} ${tool.category} ${tool.endpoint} ${tool.status}`.toLocaleLowerCase("en").includes(normalizedQuery));
+		const filtered = tools.filter((tool) => (!statusFilter || tool.status === statusFilter) && `${tool.name} ${tool.category} ${tool.endpoint} ${tool.status}`.toLocaleLowerCase("en").includes(normalizedQuery));
 		return {
 			header: "<tr><th>Tool</th><th>Category</th><th>Endpoint</th><th>Connection status</th></tr>",
 			rows: filtered.map((tool) => `<tr><td><strong>${escapeHTML(tool.name)}</strong></td><td>${escapeHTML(tool.category)}</td><td>${escapeHTML(tool.endpoint || "Not configured")}</td><td><span class="status status-${tool.statusKey}">${escapeHTML(tool.status)}</span></td></tr>`),
@@ -118,7 +128,7 @@ function getTableRows(kind, query) {
 			noun: filtered.length === 1 ? "tool" : "tools",
 		};
 	}
-	const filtered = orders.filter((order) => `${order.id} ${order.name} ${order.status}`.toLocaleLowerCase("en").includes(normalizedQuery));
+	const filtered = orders.filter((order) => (!statusFilter || order.status === statusFilter) && `${order.id} ${order.name} ${order.status}`.toLocaleLowerCase("en").includes(normalizedQuery));
 	return {
 		header: "<tr><th>Order ID</th><th>Customer</th><th>Date</th><th>Amount</th><th>Status</th></tr>",
 		rows: filtered.map((order) => `<tr><td class="order-id">${escapeHTML(order.id)}</td><td><span class="customer-cell"><span class="customer-initial ${safeTone(order.tone)}">${escapeHTML(order.initials)}</span>${escapeHTML(order.name)}</span></td><td>${escapeHTML(order.date)}</td><td>${formatCurrency(order.amount)}</td><td><span class="status status-${order.statusKey}">${escapeHTML(order.status)}</span></td></tr>`),
@@ -127,15 +137,58 @@ function getTableRows(kind, query) {
 	};
 }
 
-function renderTable() {
-	const view = views[activeView];
-	const result = getTableRows(view.kind, tableSearch.value || globalSearch.value);
-	tableHead.innerHTML = result.header;
+function renderDataTable(kind, searchId, statusId, headId, bodyId, countId) {
+	const result = getTableRows(kind, document.querySelector(searchId).value, document.querySelector(statusId)?.value || "");
+	const head = document.querySelector(headId);
+	const body = document.querySelector(bodyId);
+	head.innerHTML = result.header;
 	const columnCount = (result.header.match(/<th>/g) || []).length;
-	tableBody.innerHTML = result.rows.length ? result.rows.join("") : `<tr><td class="empty-state" colspan="${columnCount}">No results found.</td></tr>`;
-	document.querySelector("#table-title").textContent = view.tableTitle;
-	document.querySelector("#table-count").textContent = `${result.total} ${result.noun} found`;
+	body.innerHTML = result.rows.length ? result.rows.join("") : `<tr><td class="empty-state" colspan="${columnCount}">No results found.</td></tr>`;
+	document.querySelector(countId).textContent = `${result.total} ${result.noun}`;
+}
+
+function renderDashboard() {
+	const statusOrder = ["Pending", "Processing", "Delivered", "Cancelled"];
+	const orderCounts = analytics?.orders?.by_status || calculateAnalytics().orders.by_status;
+	const counts = statusOrder.map((status) => ({ status, count: orderCounts[status] || 0 }));
+	document.querySelector("#dashboard-activity").innerHTML = counts.map(({ status, count }) => `<div class="activity-row"><span class="activity-status status status-${status.toLowerCase()}">${status}</span><strong>${count}</strong><span>${count === 1 ? "order" : "orders"}</span><div class="activity-bar"><span style="width:${orders.length ? Math.max(4, Math.round(count / orders.length * 100)) : 0}%"></span></div></div>`).join("");
+	document.querySelector("#dashboard-payments").innerHTML = payments.slice(0, 5).map((payment) => `<div class="snapshot-row"><span class="snapshot-method">${escapeHTML(payment.method)}</span><span class="snapshot-customer">${escapeHTML(payment.customer)}</span><strong>${formatCurrency(payment.amount)}</strong><span class="status status-${payment.statusKey}">${escapeHTML(payment.status)}</span></div>`).join("") || '<p class="empty-state">No payment records available.</p>';
+	document.querySelector("#orders-context").textContent = `${(analytics?.orders?.total ?? orders.length).toLocaleString("en-IN")} records loaded`;
+}
+
+function renderOrders() {
+	const statuses = ["Pending", "Processing", "Delivered", "Cancelled"];
+	document.querySelector("#orders-summary").innerHTML = statuses.map((status) => `<article class="summary-tile"><span>${status}</span><strong>${orders.filter((order) => order.status === status).length}</strong></article>`).join("");
+	renderDataTable("orders", "#orders-search", "#orders-status-filter", "#orders-table-head", "#orders-table-body", "#orders-count");
 	document.querySelector("[data-view='orders'] .nav-count").textContent = orders.length;
+}
+
+function renderFinance() {
+	const summary = analytics?.payments || calculateAnalytics().payments;
+	const counts = summary.by_status;
+	const exceptions = (counts.Failed || 0) + (counts.Refunded || 0);
+	document.querySelector("#finance-metrics").innerHTML = `<article class="finance-tile"><span>Paid volume</span><strong>${formatCurrency(summary.paid_total)}</strong><small>${counts.Paid || 0} settled payments</small><details class="section-menu"><summary aria-label="Paid volume options" title="Section options">···</summary><button type="button" data-edit-section="payments">Edit payments</button></details></article><article class="finance-tile"><span>Pending volume</span><strong>${formatCurrency(summary.pending_total)}</strong><small>${counts.Pending || 0} awaiting settlement</small><details class="section-menu"><summary aria-label="Pending volume options" title="Section options">···</summary><button type="button" data-edit-section="payments">Edit payments</button></details></article><article class="finance-tile"><span>Needs review</span><strong>${exceptions}</strong><small>Failed or refunded payments</small><details class="section-menu"><summary aria-label="Exceptions options" title="Section options">···</summary><button type="button" data-edit-section="payments">Edit payments</button></details></article>`;
+	renderDataTable("payments", "#payments-search", "#payments-status-filter", "#payments-table-head", "#payments-table-body", "#payments-count");
+}
+
+function renderToolsView() {
+	const query = document.querySelector("#tools-search").value;
+	renderTools(query);
+	document.querySelector("#tools-count").textContent = `${tools.length} ${tools.length === 1 ? "tool" : "tools"} configured`;
+}
+
+function renderActiveView() {
+	if (activeView === "overview") renderDashboard();
+	if (activeView === "orders") renderOrders();
+	if (activeView === "finance") renderFinance();
+	if (activeView === "tools") renderToolsView();
+}
+
+function renderAllViews() {
+	renderDashboard();
+	renderOrders();
+	renderFinance();
+	renderToolsView();
 }
 
 function setView(viewName) {
@@ -148,18 +201,13 @@ function setView(viewName) {
 		if (isActive) link.setAttribute("aria-current", "page");
 		else link.removeAttribute("aria-current");
 	});
-	document.querySelector("#breadcrumb-current").textContent = view.title;
+	document.querySelector("#topbar-view").textContent = view.title;
 	document.querySelector("#page-title").textContent = view.heading;
 	document.querySelector("#page-subtitle").textContent = view.subtitle;
-	document.querySelector("#table-menu-summary").setAttribute("aria-label", `${view.title} options`);
-	document.querySelector("#table-edit-action").dataset.editSection = view.kind;
-	document.querySelector(".metric-grid").hidden = viewName !== "overview";
-	document.querySelector(".tools-panel").hidden = viewName !== "overview";
-	document.querySelector(".orders-panel").hidden = viewName === "overview";
-	document.querySelector(".period-select").hidden = viewName !== "overview";
-	tableSearch.value = "";
-	renderTools(globalSearch.value);
-	renderTable();
+	document.querySelector("#page-eyebrow").textContent = view.eyebrow;
+	document.querySelectorAll("[data-view-panel]").forEach((panel) => { panel.hidden = panel.dataset.viewPanel !== viewName; });
+	document.querySelector("#period-control").hidden = viewName !== "overview";
+	renderActiveView();
 	window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
@@ -172,6 +220,11 @@ function fillEditor() {
 
 function openEditor(section, toolIndex) {
 	fillEditor();
+	const sectionTitles = { summary: "dashboard summary", orders: "orders", payments: "finance payments", tools: "tools" };
+	document.querySelectorAll("[data-editor-section]").forEach((editorSection) => {
+		editorSection.hidden = editorSection.dataset.editorSection !== section;
+	});
+	document.querySelector("#edit-title").textContent = `Edit ${sectionTitles[section]}`;
 	editDialog.showModal();
 	document.querySelector(`[data-editor-section="${section}"]`)?.scrollIntoView({ block: "start" });
 	if (Number.isInteger(toolIndex)) {
@@ -314,9 +367,9 @@ function restoreDefaults() {
 		showToast("Could not clear saved edits in this browser.");
 		return;
 	}
+	analytics = calculateAnalytics();
 	renderMetrics();
-	renderTools(globalSearch.value);
-	renderTable();
+	renderAllViews();
 	fillEditor();
 	showToast("Dashboard restored to default data.");
 }
@@ -341,12 +394,11 @@ document.addEventListener("click", (event) => {
 		document.querySelector('[data-add-record="tools"]').click();
 	}
 });
-tableSearch.addEventListener("input", renderTable);
-globalSearch.addEventListener("input", () => {
-	tableSearch.value = globalSearch.value;
-	renderTools(globalSearch.value);
-	renderTable();
-});
+document.querySelector("#orders-search").addEventListener("input", renderOrders);
+document.querySelector("#orders-status-filter").addEventListener("change", renderOrders);
+document.querySelector("#payments-search").addEventListener("input", renderFinance);
+document.querySelector("#payments-status-filter").addEventListener("change", renderFinance);
+document.querySelector("#tools-search").addEventListener("input", renderToolsView);
 
 document.querySelector("#period-select").addEventListener("change", (event) => {
 	const period = event.target.value;
@@ -357,25 +409,59 @@ document.querySelector("#period-select").addEventListener("change", (event) => {
 	showToast(`${labels[period]} summary selected.`);
 });
 
-document.querySelector("#export-button").addEventListener("click", () => {
-	const exportData = activeView === "finance"
-		? { filename: "khatu-universal-payments.csv", headings: ["Payment ID", "Order ID", "Customer", "Date", "Method", "Amount (INR)", "Status"], records: payments.map((payment) => [payment.id, payment.orderId, payment.customer, payment.date, payment.method, payment.amount, payment.status]) }
-		: activeView === "tools"
-			? { filename: "khatu-universal-tools.csv", headings: ["Tool", "Category", "Endpoint", "Status"], records: tools.map((tool) => [tool.name, tool.category, tool.endpoint, tool.status]) }
-			: { filename: "khatu-universal-orders.csv", headings: ["Order ID", "Customer", "Date", "Amount (INR)", "Status"], records: orders.map((order) => [order.id, order.name, order.date, order.amount, order.status]) };
-	const lines = [exportData.headings, ...exportData.records];
-	const csv = `\uFEFF${lines.map((line) => line.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(",")).join("\n")}`;
-	const link = document.createElement("a");
-	link.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-	link.download = exportData.filename;
-	link.click();
-	URL.revokeObjectURL(link.href);
-	showToast(`${views[activeView].title} report downloaded.`);
-});
+function reportPayload() {
+	if (activeView === "finance") return { kind: "payments", records: payments };
+	if (activeView === "tools") return { kind: "tools", records: tools };
+	return { kind: "orders", records: orders };
+}
 
-document.querySelector("#edit-zone-button").addEventListener("click", () => {
-	openEditor("summary");
-});
+function downloadReport(blob, filename) {
+	const link = document.createElement("a");
+	link.href = URL.createObjectURL(blob);
+	link.download = filename;
+	link.click();
+	window.setTimeout(() => URL.revokeObjectURL(link.href), 0);
+}
+
+function makeCsvFallback(kind, records) {
+	const fields = {
+		orders: [["Order ID", "id"], ["Customer", "name"], ["Date", "date"], ["Amount (INR)", "amount"], ["Status", "status"]],
+		payments: [["Payment ID", "id"], ["Order ID", "orderId"], ["Customer", "customer"], ["Date", "date"], ["Method", "method"], ["Amount (INR)", "amount"], ["Status", "status"]],
+		tools: [["Tool", "name"], ["Category", "category"], ["Endpoint", "endpoint"], ["Status", "status"]],
+	}[kind];
+	const csvValue = (value) => {
+		const text = String(value ?? "");
+		const safeText = /^[=+\-@\t\r]/.test(text) ? `\t${text}` : text;
+		return `"${safeText.replaceAll('"', '""')}"`;
+	};
+	return `\uFEFF${[fields.map(([label]) => label), ...records.map((record) => fields.map(([, key]) => record[key]))].map((row) => row.map(csvValue).join(",")).join("\r\n")}`;
+}
+
+async function exportReport(format) {
+	if (format === "pdf") {
+		window.print();
+		return;
+	}
+	const { kind, records } = reportPayload();
+	const filename = `khatu-universal-${kind}.csv`;
+	try {
+		const response = await fetch(`api/reports/${kind}.csv`, {
+			method: "POST",
+			headers: { "Content-Type": "application/json", Accept: "text/csv" },
+			body: JSON.stringify({ records }),
+		});
+		if (!response.ok) throw new Error(`Report API returned ${response.status}`);
+		downloadReport(await response.blob(), filename);
+	} catch {
+		downloadReport(new Blob([makeCsvFallback(kind, records)], { type: "text/csv;charset=utf-8" }), filename);
+	}
+	showToast(`${views[activeView].title} CSV downloaded.`);
+}
+
+document.querySelectorAll("[data-export-format]").forEach((button) => button.addEventListener("click", () => {
+	button.closest("details")?.removeAttribute("open");
+	exportReport(button.dataset.exportFormat);
+}));
 document.querySelector("#close-editor").addEventListener("click", () => editDialog.close());
 document.querySelector("#reset-editor").addEventListener("click", restoreDefaults);
 document.querySelector(".editor-scroll").addEventListener("click", (event) => {
@@ -408,9 +494,9 @@ editorForm.addEventListener("submit", (event) => {
 		orders = nextOrders;
 		payments = nextPayments;
 		tools = nextTools;
+		analytics = calculateAnalytics();
 		renderMetrics();
-		renderTools(globalSearch.value);
-		renderTable();
+		renderAllViews();
 		editDialog.close();
 		showToast("Dashboard changes saved in this browser.");
 	} catch (error) {
@@ -419,15 +505,7 @@ editorForm.addEventListener("submit", (event) => {
 });
 
 document.addEventListener("keydown", (event) => {
-	if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-		event.preventDefault();
-		globalSearch.focus();
-	}
-	if (event.key === "Escape" && document.activeElement === globalSearch) {
-		globalSearch.value = "";
-		globalSearch.blur();
-		renderTable();
-	}
+	if (event.key === "Escape") document.querySelectorAll("details[open]").forEach((menu) => menu.removeAttribute("open"));
 });
 
 async function loadDashboardData() {
@@ -454,6 +532,7 @@ async function loadDashboardData() {
 		payments = validateRecordList(JSON.parse(JSON.stringify(dashboardDefaults.payments)), "payments", ["id", "orderId", "customer", "date", "method", "amount", "status", "statusKey"], ["amount"]);
 		tools = validateRecordList(JSON.parse(JSON.stringify(dashboardDefaults.tools)), "tools", ["name", "category", "endpoint", "status", "statusKey"], []);
 		const saved = readSavedDashboard();
+		const hasSavedRecords = saved && ["orders", "payments", "tools"].some((key) => Array.isArray(saved[key]));
 		if (saved && typeof saved === "object") {
 			if (saved.metrics && ["orders", "average"].every((key) => Number.isFinite(Number(saved.metrics[key])) && Number(saved.metrics[key]) >= 0)) {
 				metrics = Object.fromEntries(["orders", "average"].map((key) => [key, Number(saved.metrics[key])]));
@@ -469,9 +548,17 @@ async function loadDashboardData() {
 				tools = JSON.parse(JSON.stringify(dashboardDefaults.tools));
 			}
 		}
+		analytics = calculateAnalytics();
+		if (!hasSavedRecords) {
+			try {
+				const response = await fetchWithTimeout("api/analytics");
+				if (response.ok) analytics = await response.json();
+			} catch {
+				analytics = calculateAnalytics();
+			}
+		}
 		renderMetrics();
-		renderTools(globalSearch.value);
-		renderTable();
+		renderAllViews();
 	} catch (error) {
 		console.warn("Could not load dashboard data:", error);
 		showToast("Dashboard data could not be loaded. Refresh the page and try again.");
@@ -481,8 +568,7 @@ async function loadDashboardData() {
 }
 
 renderMetrics();
-renderTools();
-renderTable();
+renderAllViews();
 updateRepositoryStatus();
 window.setInterval(updateRepositoryStatus, 300000);
 loadDashboardData();
